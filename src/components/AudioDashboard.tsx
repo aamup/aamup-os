@@ -5,12 +5,20 @@ import {
 } from 'react'
 import { useAudioEngine } from '../hooks/useAudioEngine'
 import type { AudioFrame } from '../modules/audio/engine'
+import { BeatDetector } from '../modules/audio/beat'
+import {
+  audioPresets,
+  getAudioPreset,
+  type AudioPresetId,
+} from '../modules/audio/presets'
 import '../styles/audio-dashboard.css'
 
 interface AudioMetrics {
   rms: number
   peak: number
   dominantFrequency: number
+  bpm: number | null
+  beatStrength: number
 }
 
 type VisualMode = 'spectrum' | 'wave' | 'radial'
@@ -19,6 +27,8 @@ const EMPTY_METRICS: AudioMetrics = {
   rms: 0,
   peak: 0,
   dominantFrequency: 0,
+  bpm: null,
+  beatStrength: 0,
 }
 
 const visualModes: VisualMode[] = [
@@ -222,6 +232,8 @@ function drawRadial(
 export function AudioDashboard() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const metricsUpdatedAt = useRef(0)
+  const beatDetectorRef = useRef(new BeatDetector())
+  const beatPulseRef = useRef(0)
 
   const {
     status,
@@ -241,7 +253,11 @@ export function AudioDashboard() {
     useState<AudioMetrics>(EMPTY_METRICS)
   const [mode, setMode] =
     useState<VisualMode>('spectrum')
+  const [presetId, setPresetId] =
+    useState<AudioPresetId>('precision')
   const [immersive, setImmersive] = useState(false)
+
+  const preset = getAudioPreset(presetId)
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -298,7 +314,10 @@ export function AudioDashboard() {
       const cssWidth = rect.width
       const cssHeight = rect.height
 
-      context.fillStyle = '#070707'
+      context.fillStyle =
+        preset.trailAlpha >= 1
+          ? '#070707'
+          : `rgba(7,7,7,${preset.trailAlpha})`
       context.fillRect(0, 0, cssWidth, cssHeight)
       drawGrid(context, cssWidth, cssHeight)
 
@@ -332,6 +351,42 @@ export function AudioDashboard() {
         return
       }
 
+      const beat = beatDetectorRef.current.process(
+        frame.frequencies,
+        time,
+      )
+
+      if (beat.onset) {
+        beatPulseRef.current = Math.max(
+          beatPulseRef.current,
+          0.6 + beat.strength * 0.4,
+        )
+      }
+
+      const pulse = beatPulseRef.current
+
+      if (pulse > 0.01) {
+        context.fillStyle =
+          `rgba(255,48,79,${pulse * preset.beatFlash})`
+        context.fillRect(0, 0, cssWidth, cssHeight)
+
+        context.strokeStyle =
+          `rgba(255,48,79,${0.22 + pulse * 0.45})`
+        context.lineWidth = 1.5
+        context.beginPath()
+        context.arc(
+          cssWidth / 2,
+          cssHeight / 2,
+          Math.min(cssWidth, cssHeight) *
+            (0.12 + (1 - pulse) * 0.34),
+          0,
+          Math.PI * 2,
+        )
+        context.stroke()
+
+        beatPulseRef.current *= 0.90
+      }
+
       if (mode === 'spectrum') {
         drawSpectrum(
           context,
@@ -362,6 +417,10 @@ export function AudioDashboard() {
           peak: frame.peak,
           dominantFrequency:
             frame.dominantFrequency,
+          bpm: beat.bpm,
+          beatStrength: beat.onset
+            ? Math.max(beat.strength, 0.25)
+            : Math.max(0, metrics.beatStrength * 0.82),
         })
       }
 
@@ -374,7 +433,7 @@ export function AudioDashboard() {
 
     return () =>
       cancelAnimationFrame(animationFrame)
-  }, [mode, readFrame])
+  }, [mode, preset, readFrame])
 
   const statusLabel =
     status === 'live'
@@ -440,7 +499,7 @@ export function AudioDashboard() {
         </div>
       </header>
 
-      <section className="audio-kpis">
+      <section className="audio-kpis audio-kpis--five">
         <article>
           <span>RMS LEVEL</span>
           <strong>{meter(metrics.rms)}%</strong>
@@ -464,13 +523,15 @@ export function AudioDashboard() {
         </article>
 
         <article>
-          <span>SAMPLE RATE</span>
-          <strong>
-            {sampleRate
-              ? `${(sampleRate / 1000).toFixed(1)}k`
-              : '—'}
-          </strong>
-          <small>HZ / LOCAL INPUT</small>
+          <span>TEMPO</span>
+          <strong>{metrics.bpm ? `${metrics.bpm}` : '—'}</strong>
+          <small>BPM ESTIMATE</small>
+        </article>
+
+        <article>
+          <span>BEAT</span>
+          <strong>{meter(metrics.beatStrength)}%</strong>
+          <small>ONSET STRENGTH</small>
         </article>
       </section>
 
@@ -529,6 +590,24 @@ export function AudioDashboard() {
             </button>
           ))}
         </div>
+
+        <div className="audio-preset-switcher">
+          {audioPresets.map((item) => (
+            <button
+              className={
+                presetId === item.id
+                  ? 'audio-preset-switcher__active'
+                  : ''
+              }
+              key={item.id}
+              type="button"
+              title={item.description}
+              onClick={() => setPresetId(item.id)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="audio-visualizer">
@@ -539,7 +618,7 @@ export function AudioDashboard() {
               : 'LOCAL SOURCE'}
           </span>
           <span>
-            {mode.toUpperCase()} MODE
+            {mode.toUpperCase()} // {preset.label}
           </span>
           <span>
             F // IMMERSIVE
