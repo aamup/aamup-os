@@ -1,3 +1,4 @@
+import { getGitHubRemoteState } from '../../modules/github/remote'
 import { getGitRepositoryState } from '../../modules/github/repository'
 import { brand } from '../config/brand'
 import type { CommandDefinition } from './types'
@@ -19,7 +20,7 @@ export const commandDefinitions: CommandDefinition[] = [
       ok: true,
       output: [
         'COMMANDS :: help | system | status | modules | github | version | clear',
-        'TIP :: module names such as github or weather return their current state',
+        'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
   },
@@ -79,18 +80,119 @@ export const commandDefinitions: CommandDefinition[] = [
   {
     name: 'github',
     aliases: ['git', 'repo'],
-    description: 'Inspect the AAMUP OS Git repository.',
-    execute: async () => {
-      const repo = await getGitRepositoryState()
+    description: 'Inspect local and remote AAMUP OS repository intelligence.',
+    usage: 'github [local|remote|commits|issues|prs|ci]',
+    execute: async (args) => {
+      const mode = args[0]?.toLowerCase() ?? 'summary'
+
+      if (mode === 'local') {
+        const repo = await getGitRepositoryState()
+
+        return {
+          ok: true,
+          output: [
+            `LOCAL :: ${repo.branch} @ ${repo.headShort}`,
+            `HEAD :: ${repo.headMessage}`,
+            `COMMITS ${repo.commitCount} // CHANGED ${repo.changedFiles} // ${repo.clean ? 'CLEAN' : 'DIRTY'}`,
+            `SYNC :: AHEAD ${repo.ahead} // BEHIND ${repo.behind}`,
+            `ORIGIN :: ${repo.remote ?? 'NOT CONFIGURED'}`,
+          ],
+        }
+      }
+
+      let remote
+
+      try {
+        remote = await getGitHubRemoteState()
+      } catch (error) {
+        const local = await getGitRepositoryState()
+
+        return {
+          ok: false,
+          output: [
+            'GITHUB REMOTE :: UNAVAILABLE',
+            `${error}`,
+            `LOCAL FALLBACK :: ${local.branch} @ ${local.headShort} // ${local.clean ? 'CLEAN' : 'DIRTY'}`,
+          ],
+        }
+      }
+
+      if (mode === 'commits') {
+        return {
+          ok: true,
+          output: [
+            `RECENT COMMITS :: ${remote.repository.fullName}`,
+            ...remote.recentCommits.map(
+              (commit) => `${commit.sha} :: ${commit.message} // ${commit.author}`,
+            ),
+          ],
+        }
+      }
+
+      if (mode === 'issues') {
+        return {
+          ok: true,
+          output: remote.openIssues.length
+            ? [
+                `OPEN ISSUES :: ${remote.openIssues.length}`,
+                ...remote.openIssues.map(
+                  (issue) => `#${issue.number} :: ${issue.title}`,
+                ),
+              ]
+            : ['OPEN ISSUES :: 0'],
+        }
+      }
+
+      if (mode === 'prs') {
+        return {
+          ok: true,
+          output: remote.openPullRequests.length
+            ? [
+                `OPEN PRS :: ${remote.openPullRequests.length}`,
+                ...remote.openPullRequests.map(
+                  (pr) => `#${pr.number} :: ${pr.draft ? 'DRAFT // ' : ''}${pr.title}`,
+                ),
+              ]
+            : ['OPEN PRS :: 0'],
+        }
+      }
+
+      if (mode === 'ci') {
+        const workflow = remote.latestWorkflow
+
+        return {
+          ok: workflow?.conclusion !== 'failure',
+          output: workflow
+            ? [
+                `CI :: ${workflow.name.toUpperCase()}`,
+                `STATE :: ${workflow.status.toUpperCase()} // ${(workflow.conclusion || 'PENDING').toUpperCase()}`,
+                `BRANCH :: ${workflow.branch} // EVENT :: ${workflow.event.toUpperCase()}`,
+              ]
+            : ['CI :: NO WORKFLOW RUNS FOUND'],
+        }
+      }
+
+      if (mode !== 'summary' && mode !== 'remote') {
+        return {
+          ok: false,
+          output: ['USAGE :: github [local|remote|commits|issues|prs|ci]'],
+        }
+      }
+
+      const repo = remote.repository
+      const workflow = remote.latestWorkflow
+      const ci = workflow
+        ? `${workflow.status.toUpperCase()}/${(workflow.conclusion || 'PENDING').toUpperCase()}`
+        : 'UNKNOWN'
 
       return {
         ok: true,
         output: [
-          `REPOSITORY :: ${repo.branch} @ ${repo.headShort}`,
-          `HEAD :: ${repo.headMessage}`,
-          `COMMITS ${repo.commitCount} // CHANGED ${repo.changedFiles} // ${repo.clean ? 'CLEAN' : 'DIRTY'}`,
-          `SYNC :: AHEAD ${repo.ahead} // BEHIND ${repo.behind}`,
-          `ORIGIN :: ${repo.remote ?? 'NOT CONFIGURED'}`,
+          `REMOTE :: ${repo.fullName} // ${repo.visibility.toUpperCase()} // ${repo.defaultBranch}`,
+          `STARS ${repo.stars} // FORKS ${repo.forks} // OPEN ITEMS ${repo.openItems}`,
+          `COMMITS SHOWN ${remote.recentCommits.length} // ISSUES ${remote.openIssues.length} // PRS ${remote.openPullRequests.length}`,
+          `CI :: ${ci}`,
+          `API :: ${remote.rateLimitRemaining ?? '?'} REQUESTS REMAINING`,
         ],
       }
     },

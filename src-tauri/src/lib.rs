@@ -1,10 +1,11 @@
+mod github_remote;
+
+use github_remote::get_github_remote_state;
 use std::{
     path::Path,
+    process::Command,
     sync::{Mutex, OnceLock},
 };
-
-use std::process::Command;
-
 use sysinfo::{Disks, System};
 
 static SYSTEM: OnceLock<Mutex<System>> = OnceLock::new();
@@ -32,7 +33,6 @@ fn get_system_telemetry() -> Result<SystemTelemetry, String> {
     system.refresh_all();
 
     let cpu = system.global_cpu_usage();
-
     let total_memory = system.total_memory();
     let used_memory = system.used_memory();
 
@@ -43,7 +43,6 @@ fn get_system_telemetry() -> Result<SystemTelemetry, String> {
     };
 
     let disks = Disks::new_with_refreshed_list();
-
     let root_disk = disks
         .iter()
         .find(|disk| disk.mount_point() == Path::new("/"));
@@ -67,7 +66,6 @@ fn get_system_telemetry() -> Result<SystemTelemetry, String> {
     };
 
     let hostname = System::host_name().unwrap_or_else(|| "UNKNOWN".to_string());
-
     let os_name = System::long_os_version()
         .or_else(System::name)
         .unwrap_or_else(|| "Unknown OS".to_string());
@@ -192,7 +190,8 @@ pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             get_system_telemetry,
-            get_git_repository_state
+            get_git_repository_state,
+            get_github_remote_state
         ])
         .run(tauri::generate_context!())
         .expect("error while running AAMUP OS");
