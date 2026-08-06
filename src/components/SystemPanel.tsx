@@ -60,26 +60,34 @@ export function SystemPanel({
         <div className="system-facts">
           <div>
             <span>HOST</span>
-            <strong>{telemetry?.hostname ?? '—'}</strong>
+            <strong>
+              {telemetry?.hostname ?? '—'}
+            </strong>
           </div>
 
           <div>
             <span>PROCESSES</span>
-            <strong>{telemetry?.processCount ?? '—'}</strong>
+            <strong>
+              {telemetry?.processCount ?? '—'}
+            </strong>
           </div>
 
           <div>
             <span>UPTIME</span>
             <strong>
               {telemetry
-                ? formatUptime(telemetry.uptimeSeconds)
+                ? formatUptime(
+                    telemetry.uptimeSeconds,
+                  )
                 : '—'}
             </strong>
           </div>
 
           <div className="system-facts__wide">
             <span>PLATFORM</span>
-            <strong>{telemetry?.osName ?? '—'}</strong>
+            <strong>
+              {telemetry?.osName ?? '—'}
+            </strong>
           </div>
         </div>
       </div>

@@ -46,15 +46,20 @@ fn get_system_telemetry() -> Result<SystemTelemetry, String> {
         .iter()
         .find(|disk| disk.mount_point() == Path::new("/"));
 
-    let (total_disk, available_disk) = if let Some(disk) = root_disk {
-        (disk.total_space(), disk.available_space())
-    } else {
-        disks.iter().fold((0_u64, 0_u64), |(total, available), disk| {
-            (
-                total + disk.total_space(),
-                available + disk.available_space(),
-            )
-        })
+    let (total_disk, available_disk) = match root_disk {
+        Some(disk) => (
+            disk.total_space(),
+            disk.available_space(),
+        ),
+        None => disks.iter().fold(
+            (0_u64, 0_u64),
+            |(total, available), disk| {
+                (
+                    total + disk.total_space(),
+                    available + disk.available_space(),
+                )
+            },
+        ),
     };
 
     let disk = if total_disk > 0 {
@@ -63,10 +68,11 @@ fn get_system_telemetry() -> Result<SystemTelemetry, String> {
         0.0
     };
 
-    let hostname = System::host_name().unwrap_or_else(|| "UNKNOWN".to_string());
+    let hostname =
+        System::host_name().unwrap_or_else(|| "UNKNOWN".to_string());
 
     let os_name = System::long_os_version()
-        .or_else(|| System::name())
+        .or_else(System::name)
         .unwrap_or_else(|| "Unknown OS".to_string());
 
     Ok(SystemTelemetry {
@@ -83,7 +89,11 @@ fn get_system_telemetry() -> Result<SystemTelemetry, String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_system_telemetry])
+        .invoke_handler(
+            tauri::generate_handler![
+                get_system_telemetry
+            ]
+        )
         .run(tauri::generate_context!())
         .expect("error while running AAMUP OS");
 }

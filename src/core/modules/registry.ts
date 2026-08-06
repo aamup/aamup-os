@@ -5,8 +5,8 @@ export const modules: AamupModule[] = [
     id: 'system',
     label: 'System Telemetry',
     shortLabel: 'SYSTEM',
-    state: 'demo',
-    description: 'CPU, memory, storage, network, and process telemetry.',
+    state: 'online',
+    description: 'Native CPU, memory, storage, uptime, and process telemetry.',
   },
   {
     id: 'github',

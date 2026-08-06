@@ -11,20 +11,27 @@ export interface TelemetrySnapshot {
   osName: string
 }
 
-export type TelemetryStatus = 'connecting' | 'live' | 'error'
+export type TelemetryStatus =
+  | 'connecting'
+  | 'live'
+  | 'error'
 
 export function useSystemTelemetry() {
-  const [telemetry, setTelemetry] = useState<TelemetrySnapshot | null>(null)
-  const [status, setStatus] = useState<TelemetryStatus>('connecting')
+  const [telemetry, setTelemetry] =
+    useState<TelemetrySnapshot | null>(null)
+
+  const [status, setStatus] =
+    useState<TelemetryStatus>('connecting')
 
   useEffect(() => {
     let active = true
 
     async function refresh() {
       try {
-        const snapshot = await invoke<TelemetrySnapshot>(
-          'get_system_telemetry',
-        )
+        const snapshot =
+          await invoke<TelemetrySnapshot>(
+            'get_system_telemetry',
+          )
 
         if (!active) return
 
@@ -33,7 +40,11 @@ export function useSystemTelemetry() {
       } catch (error) {
         if (!active) return
 
-        console.error('Native telemetry unavailable:', error)
+        console.error(
+          'AAMUP native telemetry unavailable:',
+          error,
+        )
+
         setStatus('error')
       }
     }

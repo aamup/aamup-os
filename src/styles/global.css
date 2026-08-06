@@ -272,3 +272,61 @@ button, input { font: inherit; }
 .system-facts__wide {
   grid-column: 1 / -1;
 }
+
+/* AAMUP native telemetry */
+
+.telemetry-flag {
+  font-size: 8px;
+  letter-spacing: 0.14em;
+}
+
+.telemetry-flag--connecting {
+  color: #777;
+}
+
+.telemetry-flag--live {
+  color: var(--red);
+  text-shadow:
+    0 0 8px rgba(255, 48, 79, 0.7);
+}
+
+.telemetry-flag--error {
+  color: #777;
+}
+
+.system-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  padding-top: 4px;
+  background: rgba(255,255,255,0.05);
+}
+
+.system-facts > div {
+  min-width: 0;
+  padding: 10px;
+  background: #080808;
+}
+
+.system-facts span {
+  display: block;
+  margin-bottom: 5px;
+  color: #575757;
+  font-size: 7px;
+  letter-spacing: 0.16em;
+}
+
+.system-facts strong {
+  display: block;
+  overflow: hidden;
+  color: #bdbdbd;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.system-facts__wide {
+  grid-column: 1 / -1;
+}
