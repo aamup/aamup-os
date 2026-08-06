@@ -1,0 +1,7 @@
+Suggested first commit sequence after downloading the starter:
+
+1. chore: initialize AAMUP OS workspace
+2. feat(shell): establish command center interface
+3. docs: define architecture and Gource strategy
+
+If you want the earliest history to show separate growth phases, create commit 1 from the project/tooling files, commit 2 from src/, and commit 3 from README.md + docs/ instead of committing the starter all at once.
