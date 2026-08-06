@@ -6,11 +6,11 @@ import { StatusPanel } from '../components/StatusPanel'
 import { SystemPanel } from '../components/SystemPanel'
 import { brand } from '../core/config/brand'
 import { useClock } from '../hooks/useClock'
-import { useDemoTelemetry } from '../hooks/useDemoTelemetry'
+import { useSystemTelemetry } from '../hooks/useSystemTelemetry'
 
 export function App() {
   const now = useClock()
-  const telemetry = useDemoTelemetry()
+  const { telemetry, status: telemetryStatus } = useSystemTelemetry()
 
   const time = now.toLocaleTimeString([], {
     hour: '2-digit',
@@ -47,7 +47,7 @@ export function App() {
 
       <div className="dashboard-grid">
         <aside className="left-rail">
-          <SystemPanel telemetry={telemetry} />
+          <SystemPanel telemetry={telemetry} status={telemetryStatus} />
           <ModulePanel />
         </aside>
 
