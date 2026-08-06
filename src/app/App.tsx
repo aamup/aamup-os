@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { ActivityPanel } from '../components/ActivityPanel'
 import { CommandBar } from '../components/CommandBar'
 import { GitHubDashboard } from '../components/GitHubDashboard'
+import { WeatherDashboard } from '../components/WeatherDashboard'
 import { ModulePanel } from '../components/ModulePanel'
 import { StatusPanel } from '../components/StatusPanel'
 import { SystemPanel } from '../components/SystemPanel'
@@ -10,6 +12,7 @@ import { useSystemTelemetry } from '../hooks/useSystemTelemetry'
 
 export function App() {
   const now = useClock()
+  const [activeModule, setActiveModule] = useState<'github' | 'weather'>('github')
   const { telemetry, status: telemetryStatus } = useSystemTelemetry()
 
   const time = now.toLocaleTimeString([], {
@@ -48,10 +51,10 @@ export function App() {
       <div className="dashboard-grid">
         <aside className="left-rail">
           <SystemPanel telemetry={telemetry} status={telemetryStatus} />
-          <ModulePanel />
+          <ModulePanel activeModule={activeModule} onSelect={setActiveModule} />
         </aside>
 
-        <GitHubDashboard />
+        {activeModule === 'github' ? <GitHubDashboard /> : <WeatherDashboard />}
 
         <aside className="right-rail">
           <ActivityPanel />
@@ -62,7 +65,7 @@ export function App() {
       <CommandBar telemetry={telemetry} telemetryStatus={telemetryStatus} />
       <footer className="footer-line">
         <span>AAMUP CORE / SECURE LOCAL SESSION</span>
-        <span>GITHUB INTELLIGENCE / REMOTE LINK ACTIVE</span>
+        <span>{activeModule.toUpperCase()} INTELLIGENCE / REMOTE LINK ACTIVE</span>
       </footer>
     </div>
   )

@@ -1,3 +1,4 @@
+import { getWeatherIntelligence } from '../../modules/weather/client'
 import { getGitHubRemoteState } from '../../modules/github/remote'
 import { getGitRepositoryState } from '../../modules/github/repository'
 import { brand } from '../config/brand'
@@ -19,7 +20,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -194,6 +195,36 @@ export const commandDefinitions: CommandDefinition[] = [
           `CI :: ${ci}`,
           `API :: ${remote.rateLimitRemaining ?? '?'} REQUESTS REMAINING`,
         ],
+      }
+    },
+  },
+  {
+    name: 'weather',
+    aliases: ['wx'],
+    description: 'Inspect live weather intelligence.',
+    execute: async () => {
+      try {
+        const weather = await getWeatherIntelligence()
+        const current = weather.current
+        const today = weather.daily[0]
+
+        return {
+          ok: true,
+          output: [
+            `WEATHER :: ${weather.locationLabel}`,
+            `TEMP ${Math.round(current.temperature)}F // FEELS ${Math.round(current.apparentTemperature)}F // HUMIDITY ${Math.round(current.humidity)}%`,
+            `WIND ${Math.round(current.windSpeed)} MPH // PRECIP ${current.precipitation.toFixed(2)} IN`,
+            `TODAY :: HIGH ${today ? Math.round(today.high) : '?'}F // LOW ${today ? Math.round(today.low) : '?'}F // RAIN ${today ? Math.round(today.precipitationProbability) : '?'}%`,
+          ],
+        }
+      } catch (error) {
+        return {
+          ok: false,
+          output: [
+            'WEATHER :: UNAVAILABLE',
+            `${error}`,
+          ],
+        }
       }
     },
   },

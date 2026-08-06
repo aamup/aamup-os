@@ -19,8 +19,8 @@ export const modules: AamupModule[] = [
     id: 'weather',
     label: 'Weather Intelligence',
     shortLabel: 'WEATHER',
-    state: 'planned',
-    description: 'Current conditions, alerts, and forecast signals.',
+    state: 'online',
+    description: 'Native current conditions, hourly outlook, and seven-day forecast signals.',
   },
   {
     id: 'markets',

@@ -1,4 +1,5 @@
 mod github_remote;
+mod weather;
 
 use github_remote::get_github_remote_state;
 use std::{
@@ -7,6 +8,7 @@ use std::{
     sync::{Mutex, OnceLock},
 };
 use sysinfo::{Disks, System};
+use weather::get_weather_intelligence;
 
 static SYSTEM: OnceLock<Mutex<System>> = OnceLock::new();
 
@@ -191,7 +193,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_system_telemetry,
             get_git_repository_state,
-            get_github_remote_state
+            get_github_remote_state,
+            get_weather_intelligence
         ])
         .run(tauri::generate_context!())
         .expect("error while running AAMUP OS");
