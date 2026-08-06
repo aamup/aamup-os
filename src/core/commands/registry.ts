@@ -1,3 +1,4 @@
+import { runAssistantQuery } from '../../modules/assistant/router'
 import { getMediaSession, mediaControl } from '../../modules/audio/media'
 import { getNewsIntelligence } from '../../modules/news/client'
 import { getMarketsIntelligence } from '../../modules/markets/client'
@@ -23,7 +24,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | ask | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -357,6 +358,32 @@ export const commandDefinitions: CommandDefinition[] = [
           `TRACK :: ${session.title || 'UNKNOWN'}`,
           `ARTIST :: ${session.artist || 'UNKNOWN'}`,
           `ALBUM :: ${session.album || 'UNKNOWN'}`,
+        ],
+      }
+    },
+  },
+  {
+    name: 'ask',
+    aliases: ['assistant', 'query'],
+    description: 'Route a natural-language request through Assistant Core.',
+    usage: 'ask <request>',
+    execute: async (args) => {
+      const input = args.join(' ').trim()
+
+      if (!input) {
+        return {
+          ok: false,
+          output: ['USAGE :: ask <request>'],
+        }
+      }
+
+      const result = await runAssistantQuery(input)
+
+      return {
+        ok: result.ok,
+        output: [
+          result.title,
+          ...result.lines,
         ],
       }
     },

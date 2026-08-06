@@ -45,9 +45,9 @@ export const modules: AamupModule[] = [
   },
   {
     id: 'assistant',
-    label: 'AAMUP Assistant',
+    label: 'Assistant Core',
     shortLabel: 'ASSIST',
-    state: 'planned',
-    description: 'Natural-language command and automation interface.',
+    state: 'online',
+    description: 'Local natural-language routing across live intelligence modules.',
   },
 ]
