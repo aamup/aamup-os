@@ -4,6 +4,7 @@ import {
   useState,
 } from 'react'
 import { useAudioEngine } from '../hooks/useAudioEngine'
+import type { AudioFrame } from '../modules/audio/engine'
 import '../styles/audio-dashboard.css'
 
 interface AudioMetrics {
@@ -12,11 +13,19 @@ interface AudioMetrics {
   dominantFrequency: number
 }
 
+type VisualMode = 'spectrum' | 'wave' | 'radial'
+
 const EMPTY_METRICS: AudioMetrics = {
   rms: 0,
   peak: 0,
   dominantFrequency: 0,
 }
+
+const visualModes: VisualMode[] = [
+  'spectrum',
+  'wave',
+  'radial',
+]
 
 function meter(value: number) {
   return Math.max(0, Math.min(100, Math.round(value * 100)))
@@ -30,20 +39,228 @@ function frequencyLabel(value: number) {
   return `${Math.round(value)} Hz`
 }
 
+function drawGrid(
+  context: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+) {
+  context.strokeStyle = 'rgba(255,255,255,0.035)'
+  context.lineWidth = 1
+
+  for (let x = 0; x <= width; x += 36) {
+    context.beginPath()
+    context.moveTo(x, 0)
+    context.lineTo(x, height)
+    context.stroke()
+  }
+
+  for (let y = 0; y <= height; y += 36) {
+    context.beginPath()
+    context.moveTo(0, y)
+    context.lineTo(width, y)
+    context.stroke()
+  }
+}
+
+function drawSpectrum(
+  context: CanvasRenderingContext2D,
+  frame: AudioFrame,
+  width: number,
+  height: number,
+) {
+  const bars = 88
+  const usableBins = Math.min(frame.frequencies.length, 700)
+  const gap = 2
+  const barWidth =
+    Math.max(1, (width - (bars - 1) * gap) / bars)
+  const spectrumHeight = height * 0.76
+
+  for (let index = 0; index < bars; index += 1) {
+    const start = Math.floor(index / bars * usableBins)
+    const end = Math.max(
+      start + 1,
+      Math.floor((index + 1) / bars * usableBins),
+    )
+
+    let total = 0
+    for (let bin = start; bin < end; bin += 1) {
+      total += frame.frequencies[bin]
+    }
+
+    const amplitude =
+      total / Math.max(1, end - start) / 255
+    const barHeight =
+      Math.max(1, amplitude * spectrumHeight)
+
+    context.fillStyle =
+      index % 8 === 0
+        ? 'rgba(255,48,79,0.98)'
+        : 'rgba(226,226,226,0.78)'
+
+    context.fillRect(
+      index * (barWidth + gap),
+      height - barHeight,
+      barWidth,
+      barHeight,
+    )
+  }
+}
+
+function drawWave(
+  context: CanvasRenderingContext2D,
+  frame: AudioFrame,
+  width: number,
+  height: number,
+) {
+  context.strokeStyle = '#ff304f'
+  context.lineWidth = 2
+  context.shadowColor = 'rgba(255,48,79,0.72)'
+  context.shadowBlur = 12
+  context.beginPath()
+
+  const step =
+    Math.max(1, Math.floor(frame.waveform.length / 520))
+  const pointCount =
+    Math.ceil(frame.waveform.length / step)
+
+  let point = 0
+
+  for (
+    let index = 0;
+    index < frame.waveform.length;
+    index += step
+  ) {
+    const x =
+      point / Math.max(1, pointCount - 1) * width
+    const normalized =
+      (frame.waveform[index] - 128) / 128
+    const y =
+      height / 2 +
+      normalized * height * 0.40
+
+    if (point === 0) {
+      context.moveTo(x, y)
+    } else {
+      context.lineTo(x, y)
+    }
+
+    point += 1
+  }
+
+  context.stroke()
+  context.shadowBlur = 0
+
+  context.strokeStyle = 'rgba(255,255,255,0.07)'
+  context.lineWidth = 1
+  context.beginPath()
+  context.moveTo(0, height / 2)
+  context.lineTo(width, height / 2)
+  context.stroke()
+}
+
+function drawRadial(
+  context: CanvasRenderingContext2D,
+  frame: AudioFrame,
+  width: number,
+  height: number,
+) {
+  const cx = width / 2
+  const cy = height / 2
+  const radius =
+    Math.min(width, height) * 0.18
+  const bars = 128
+  const usableBins =
+    Math.min(frame.frequencies.length, 720)
+
+  context.save()
+  context.translate(cx, cy)
+
+  context.strokeStyle = 'rgba(255,48,79,0.42)'
+  context.lineWidth = 1
+  context.beginPath()
+  context.arc(0, 0, radius, 0, Math.PI * 2)
+  context.stroke()
+
+  for (let index = 0; index < bars; index += 1) {
+    const bin =
+      Math.floor(index / bars * usableBins)
+    const amplitude =
+      frame.frequencies[bin] / 255
+    const angle =
+      index / bars * Math.PI * 2 - Math.PI / 2
+    const inner = radius
+    const outer =
+      radius + amplitude * Math.min(width, height) * 0.24
+
+    const x1 = Math.cos(angle) * inner
+    const y1 = Math.sin(angle) * inner
+    const x2 = Math.cos(angle) * outer
+    const y2 = Math.sin(angle) * outer
+
+    context.strokeStyle =
+      index % 12 === 0
+        ? 'rgba(255,48,79,1)'
+        : 'rgba(225,225,225,0.68)'
+
+    context.beginPath()
+    context.moveTo(x1, y1)
+    context.lineTo(x2, y2)
+    context.stroke()
+  }
+
+  const pulse =
+    radius * (0.5 + Math.min(1, frame.rms * 5) * 0.35)
+
+  context.fillStyle = 'rgba(255,48,79,0.08)'
+  context.beginPath()
+  context.arc(0, 0, pulse, 0, Math.PI * 2)
+  context.fill()
+
+  context.restore()
+}
+
 export function AudioDashboard() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const metricsUpdatedAt = useRef(0)
+
   const {
     status,
     error,
     sampleRate,
+    devices,
+    selectedDeviceId,
+    activeDeviceLabel,
     start,
     stop,
+    selectDevice,
+    refreshDevices,
     readFrame,
   } = useAudioEngine()
 
   const [metrics, setMetrics] =
     useState<AudioMetrics>(EMPTY_METRICS)
+  const [mode, setMode] =
+    useState<VisualMode>('spectrum')
+  const [immersive, setImmersive] = useState(false)
+
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setImmersive(false)
+      }
+
+      if (event.key.toLowerCase() === 'f') {
+        setImmersive((current) => !current)
+      }
+
+      if (event.key === '1') setMode('spectrum')
+      if (event.key === '2') setMode('wave')
+      if (event.key === '3') setMode('radial')
+    }
+
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -60,35 +277,18 @@ export function AudioDashboard() {
 
     let animationFrame = 0
 
-    const drawGrid = (
-      width: number,
-      height: number,
-    ) => {
-      context.strokeStyle = 'rgba(255,255,255,0.035)'
-      context.lineWidth = 1
-
-      for (let x = 0; x <= width; x += 36) {
-        context.beginPath()
-        context.moveTo(x, 0)
-        context.lineTo(x, height)
-        context.stroke()
-      }
-
-      for (let y = 0; y <= height; y += 36) {
-        context.beginPath()
-        context.moveTo(0, y)
-        context.lineTo(width, y)
-        context.stroke()
-      }
-    }
-
     const render = (time: number) => {
       const rect = canvas.getBoundingClientRect()
       const dpr = window.devicePixelRatio || 1
-      const width = Math.max(1, Math.round(rect.width * dpr))
-      const height = Math.max(1, Math.round(rect.height * dpr))
+      const width =
+        Math.max(1, Math.round(rect.width * dpr))
+      const height =
+        Math.max(1, Math.round(rect.height * dpr))
 
-      if (canvas.width !== width || canvas.height !== height) {
+      if (
+        canvas.width !== width ||
+        canvas.height !== height
+      ) {
         canvas.width = width
         canvas.height = height
       }
@@ -100,130 +300,81 @@ export function AudioDashboard() {
 
       context.fillStyle = '#070707'
       context.fillRect(0, 0, cssWidth, cssHeight)
-      drawGrid(cssWidth, cssHeight)
+      drawGrid(context, cssWidth, cssHeight)
 
       const frame = readFrame()
 
       if (!frame) {
-        context.strokeStyle = 'rgba(255,48,79,0.2)'
+        context.strokeStyle = 'rgba(255,48,79,0.22)'
         context.beginPath()
-        context.moveTo(0, cssHeight * 0.66)
-        context.lineTo(cssWidth, cssHeight * 0.66)
+        context.moveTo(0, cssHeight / 2)
+        context.lineTo(cssWidth, cssHeight / 2)
         context.stroke()
 
-        context.fillStyle = 'rgba(255,255,255,0.20)'
+        context.fillStyle = 'rgba(255,255,255,0.22)'
         context.font = '10px monospace'
         context.textAlign = 'center'
         context.fillText(
           'LOCAL INPUT DISCONNECTED',
           cssWidth / 2,
-          cssHeight / 2,
+          cssHeight / 2 - 16,
         )
 
-        animationFrame = requestAnimationFrame(render)
+        context.fillStyle = 'rgba(255,48,79,0.55)'
+        context.fillText(
+          'SELECT SOURCE // START INPUT',
+          cssWidth / 2,
+          cssHeight / 2 + 16,
+        )
+
+        animationFrame =
+          requestAnimationFrame(render)
         return
       }
 
-      const bars = 72
-      const usableBins = Math.min(
-        frame.frequencies.length,
-        620,
-      )
-      const barGap = 2
-      const barWidth =
-        Math.max(1, (cssWidth - (bars - 1) * barGap) / bars)
-      const spectrumHeight = cssHeight * 0.62
-
-      for (let index = 0; index < bars; index += 1) {
-        const start = Math.floor(index / bars * usableBins)
-        const end = Math.max(
-          start + 1,
-          Math.floor((index + 1) / bars * usableBins),
+      if (mode === 'spectrum') {
+        drawSpectrum(
+          context,
+          frame,
+          cssWidth,
+          cssHeight,
         )
-
-        let total = 0
-        for (let bin = start; bin < end; bin += 1) {
-          total += frame.frequencies[bin]
-        }
-
-        const amplitude =
-          total / Math.max(1, end - start) / 255
-        const barHeight =
-          Math.max(1, amplitude * spectrumHeight)
-
-        context.fillStyle =
-          index % 6 === 0
-            ? 'rgba(255,48,79,0.96)'
-            : 'rgba(220,220,220,0.78)'
-
-        context.fillRect(
-          index * (barWidth + barGap),
-          spectrumHeight - barHeight,
-          barWidth,
-          barHeight,
+      } else if (mode === 'wave') {
+        drawWave(
+          context,
+          frame,
+          cssWidth,
+          cssHeight,
+        )
+      } else {
+        drawRadial(
+          context,
+          frame,
+          cssWidth,
+          cssHeight,
         )
       }
-
-      const waveformTop = cssHeight * 0.68
-      const waveformHeight = cssHeight * 0.24
-
-      context.strokeStyle = '#ff304f'
-      context.lineWidth = 1.35
-      context.shadowColor = 'rgba(255,48,79,0.5)'
-      context.shadowBlur = 6
-      context.beginPath()
-
-      const step =
-        Math.max(1, Math.floor(frame.waveform.length / 420))
-
-      let point = 0
-
-      for (
-        let index = 0;
-        index < frame.waveform.length;
-        index += step
-      ) {
-        const x =
-          point /
-          Math.max(1, Math.ceil(frame.waveform.length / step) - 1) *
-          cssWidth
-
-        const normalized =
-          (frame.waveform[index] - 128) / 128
-
-        const y =
-          waveformTop +
-          waveformHeight / 2 +
-          normalized * waveformHeight * 0.45
-
-        if (point === 0) {
-          context.moveTo(x, y)
-        } else {
-          context.lineTo(x, y)
-        }
-
-        point += 1
-      }
-
-      context.stroke()
-      context.shadowBlur = 0
 
       if (time - metricsUpdatedAt.current > 100) {
         metricsUpdatedAt.current = time
         setMetrics({
           rms: frame.rms,
           peak: frame.peak,
-          dominantFrequency: frame.dominantFrequency,
+          dominantFrequency:
+            frame.dominantFrequency,
         })
       }
 
-      animationFrame = requestAnimationFrame(render)
+      animationFrame =
+        requestAnimationFrame(render)
     }
 
-    animationFrame = requestAnimationFrame(render)
+    animationFrame =
+      requestAnimationFrame(render)
 
-    return () => cancelAnimationFrame(animationFrame)
-  }, [readFrame])
+    return () =>
+      cancelAnimationFrame(animationFrame)
+  }, [mode, readFrame])
 
   const statusLabel =
     status === 'live'
@@ -234,8 +385,16 @@ export function AudioDashboard() {
           ? 'INPUT ERROR'
           : 'INPUT IDLE'
 
+  const selectedDevice =
+    devices.find(
+      (device) =>
+        device.deviceId === selectedDeviceId,
+    )
+
   return (
-    <main className="audio-dashboard">
+    <main
+      className={`audio-dashboard${immersive ? ' audio-dashboard--immersive' : ''}`}
+    >
       <header className="audio-dashboard__header">
         <div>
           <span className="audio-eyebrow">
@@ -243,7 +402,7 @@ export function AudioDashboard() {
           </span>
           <h1>SPECTRUM CORE</h1>
           <p>
-            REAL-TIME INPUT / FREQUENCY ANALYSIS / WAVEFORM
+            DEVICE ROUTING / REAL-TIME ANALYSIS / VISUAL MODES
           </p>
         </div>
 
@@ -269,6 +428,15 @@ export function AudioDashboard() {
               START INPUT
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() =>
+              setImmersive((current) => !current)
+            }
+          >
+            {immersive ? 'EXIT VIEW' : 'IMMERSIVE'}
+          </button>
         </div>
       </header>
 
@@ -306,38 +474,108 @@ export function AudioDashboard() {
         </article>
       </section>
 
+      <section className="audio-routing">
+        <div className="audio-routing__source">
+          <label htmlFor="audio-source">
+            AUDIO SOURCE
+          </label>
+
+          <select
+            id="audio-source"
+            value={selectedDeviceId}
+            onChange={(event) =>
+              void selectDevice(event.target.value)
+            }
+          >
+            {devices.length === 0 ? (
+              <option value="">
+                DEFAULT INPUT
+              </option>
+            ) : (
+              devices.map((device) => (
+                <option
+                  key={device.deviceId}
+                  value={device.deviceId}
+                >
+                  {device.isMonitor
+                    ? `MONITOR // ${device.label}`
+                    : device.label}
+                </option>
+              ))
+            )}
+          </select>
+
+          <button
+            type="button"
+            onClick={() => void refreshDevices()}
+          >
+            RESCAN
+          </button>
+        </div>
+
+        <div className="audio-mode-switcher">
+          {visualModes.map((visualMode, index) => (
+            <button
+              className={
+                mode === visualMode
+                  ? 'audio-mode-switcher__active'
+                  : ''
+              }
+              key={visualMode}
+              type="button"
+              onClick={() => setMode(visualMode)}
+            >
+              {index + 1} // {visualMode.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </section>
+
       <section className="audio-visualizer">
         <div className="audio-visualizer__labels">
-          <span>20 HZ</span>
-          <span>FREQUENCY SPECTRUM</span>
-          <span>20 KHZ</span>
+          <span>
+            {selectedDevice?.isMonitor
+              ? 'DESKTOP MONITOR'
+              : 'LOCAL SOURCE'}
+          </span>
+          <span>
+            {mode.toUpperCase()} MODE
+          </span>
+          <span>
+            F // IMMERSIVE
+          </span>
         </div>
 
         <canvas ref={canvasRef} />
 
         <div className="audio-visualizer__footer">
-          <span>72-BAND DISPLAY</span>
           <span>2048 FFT WINDOW</span>
-          <span>LIVE WAVEFORM</span>
+          <span>
+            {activeDeviceLabel || selectedDevice?.label || 'NO ACTIVE SOURCE'}
+          </span>
+          <span>ESC // EXIT</span>
         </div>
       </section>
 
-      <section className="audio-input-note">
-        <div>
-          <span>INPUT ROUTE</span>
-          <strong>
-            {status === 'live'
-              ? 'LOCAL CAPTURE ACTIVE'
-              : 'SELECT START INPUT'}
-          </strong>
-        </div>
+      {!immersive && (
+        <section className="audio-input-note">
+          <div>
+            <span>DESKTOP ROUTE</span>
+            <strong>
+              {selectedDevice?.isMonitor
+                ? 'MONITOR SOURCE DETECTED'
+                : 'INPUT SOURCE SELECTED'}
+            </strong>
+          </div>
 
-        <p>
-          Uses the local Web Audio input only. On Linux, a PipeWire
-          monitor source can be selected as the input route when available
-          to visualize desktop playback without sending audio to a server.
-        </p>
-      </section>
+          <p>
+            If PipeWire exposes a monitor source, choose the entry marked
+            MONITOR to drive the visualizer from Spotify, YouTube, or other
+            desktop playback. Otherwise the selected microphone/input is
+            analyzed. Processing remains local.
+          </p>
+        </section>
+      )}
 
       <footer className="audio-dashboard__footer">
         <span>
@@ -346,7 +584,7 @@ export function AudioDashboard() {
         <span>
           {error
             ? error.toUpperCase()
-            : 'FFT ANALYZER READY'}
+            : 'FFT ANALYZER v0.2 READY'}
         </span>
       </footer>
     </main>

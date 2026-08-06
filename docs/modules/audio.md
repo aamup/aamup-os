@@ -1,18 +1,18 @@
 # Audio Engine
 
-Audio Engine v0.1 is a local-only real-time visualization module.
+Audio Engine v0.2 is a local-only real-time audio analysis and visualization module.
 
 ## Pipeline
 
 ```text
-Local audio input
-      ↓
+Selectable local audio source
+           ↓
 Web Audio API
-      ↓
+           ↓
 2048-sample FFT analyzer
-      ↓
-72-band spectrum + waveform
-      ↓
+           ↓
+Spectrum / Wave / Radial visual modes
+           ↓
 RMS / peak / dominant-frequency telemetry
 ```
 
@@ -20,21 +20,38 @@ No captured audio is uploaded or sent to a server.
 
 ## Current capabilities
 
-- user-initiated local audio capture
+- audio input device discovery
+- selectable capture source
+- automatic monitor-source hinting
 - real-time FFT spectrum
-- real-time waveform
+- oscilloscope waveform mode
+- radial frequency visualization
 - RMS amplitude
 - peak amplitude
 - dominant-frequency estimate
 - sample-rate display
+- immersive visualization view
+- keyboard mode switching
 - local-only processing
-- start/stop controls
 
-## Linux desktop audio
+## Controls
 
-When a PipeWire or PulseAudio monitor source is exposed as an input device,
-selecting that monitor source allows the analyzer to visualize desktop playback.
-Availability depends on the host audio configuration and WebView permissions.
+```text
+1     Spectrum mode
+2     Wave mode
+3     Radial mode
+F     Toggle immersive view
+Esc   Exit immersive view
+```
+
+## Linux desktop playback
+
+AAMUP OS checks input labels for monitor/PipeWire/Pulse-style sources. If the host exposes
+a desktop monitor as an audio input, it is marked `MONITOR // ...` in the source selector.
+
+Selecting that source can drive the visualizer from desktop playback such as Spotify or YouTube.
+
+Exact source availability depends on the PipeWire/PulseAudio configuration exposed to the WebView.
 
 ## Commands
 
@@ -45,12 +62,11 @@ visualizer
 fft
 ```
 
-## Planned
+## Next audio milestones
 
-- native PipeWire capture
-- input-device selection inside the app
-- fullscreen visualization
-- multiple visualization modes
+- native PipeWire source enumeration/capture
+- persistent preferred source
 - beat/onset detection
+- visualization presets
 - Spotify playback metadata and controls
 - album art and track context

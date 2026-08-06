@@ -6,6 +6,36 @@ export interface AudioFrame {
   dominantFrequency: number
 }
 
+export interface AudioInputDevice {
+  deviceId: string
+  label: string
+  isMonitor: boolean
+}
+
+export async function listAudioInputDevices(): Promise<AudioInputDevice[]> {
+  if (!navigator.mediaDevices?.enumerateDevices) {
+    return []
+  }
+
+  const devices = await navigator.mediaDevices.enumerateDevices()
+
+  return devices
+    .filter((device) => device.kind === 'audioinput')
+    .map((device, index) => {
+      const label = device.label || `AUDIO INPUT ${index + 1}`
+      const normalized = label.toLowerCase()
+
+      return {
+        deviceId: device.deviceId,
+        label,
+        isMonitor:
+          normalized.includes('monitor') ||
+          normalized.includes('pipewire') ||
+          normalized.includes('pulse'),
+      }
+    })
+}
+
 export class AudioCaptureEngine {
   private context: AudioContext | null = null
   private analyser: AnalyserNode | null = null
@@ -20,15 +50,33 @@ export class AudioCaptureEngine {
     return this.context !== null && this.analyser !== null
   }
 
-  async start() {
+  get activeDeviceLabel() {
+    return this.stream?.getAudioTracks()[0]?.label ?? ''
+  }
+
+  get activeDeviceId() {
+    return this.stream?.getAudioTracks()[0]?.getSettings().deviceId ?? ''
+  }
+
+  async start(deviceId?: string) {
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error('Audio input capture is not supported by this WebView.')
     }
 
     await this.stop()
 
+    const audio: MediaTrackConstraints = {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+    }
+
+    if (deviceId) {
+      audio.deviceId = { exact: deviceId }
+    }
+
     const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
+      audio,
       video: false,
     })
 
@@ -36,9 +84,9 @@ export class AudioCaptureEngine {
     const analyser = context.createAnalyser()
 
     analyser.fftSize = 2048
-    analyser.smoothingTimeConstant = 0.82
-    analyser.minDecibels = -95
-    analyser.maxDecibels = -10
+    analyser.smoothingTimeConstant = 0.78
+    analyser.minDecibels = -100
+    analyser.maxDecibels = -8
 
     const source = context.createMediaStreamSource(stream)
     source.connect(analyser)
