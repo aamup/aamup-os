@@ -1,7 +1,9 @@
 mod github_remote;
+mod markets;
 mod weather;
 
 use github_remote::get_github_remote_state;
+use markets::get_markets_intelligence;
 use std::{
     path::Path,
     process::Command,
@@ -194,7 +196,8 @@ pub fn run() {
             get_system_telemetry,
             get_git_repository_state,
             get_github_remote_state,
-            get_weather_intelligence
+            get_weather_intelligence,
+            get_markets_intelligence
         ])
         .run(tauri::generate_context!())
         .expect("error while running AAMUP OS");

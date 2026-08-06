@@ -1,8 +1,8 @@
 import { modules } from '../core/modules/registry'
 
 interface ModulePanelProps {
-  activeModule: 'github' | 'weather'
-  onSelect: (module: 'github' | 'weather') => void
+  activeModule: 'github' | 'weather' | 'markets'
+  onSelect: (module: 'github' | 'weather' | 'markets') => void
 }
 
 export function ModulePanel({
@@ -19,7 +19,7 @@ export function ModulePanel({
       <div className="module-list">
         {modules.map((module) => {
           const selectableId =
-            module.id === 'github' || module.id === 'weather'
+            module.id === 'github' || module.id === 'weather' || module.id === 'markets'
               ? module.id
               : null
 

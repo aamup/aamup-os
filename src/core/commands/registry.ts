@@ -1,3 +1,4 @@
+import { getMarketsIntelligence } from '../../modules/markets/client'
 import { getWeatherIntelligence } from '../../modules/weather/client'
 import { getGitHubRemoteState } from '../../modules/github/remote'
 import { getGitRepositoryState } from '../../modules/github/repository'
@@ -20,7 +21,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -222,6 +223,35 @@ export const commandDefinitions: CommandDefinition[] = [
           ok: false,
           output: [
             'WEATHER :: UNAVAILABLE',
+            `${error}`,
+          ],
+        }
+      }
+    },
+  },
+  {
+    name: 'markets',
+    aliases: ['market', 'stocks', 'crypto'],
+    description: 'Inspect live market watchlist intelligence.',
+    execute: async () => {
+      try {
+        const markets = await getMarketsIntelligence()
+
+        return {
+          ok: true,
+          output: [
+            `MARKETS :: ${markets.quotes.length} SYMBOLS // ${markets.errors.length} ERRORS`,
+            ...markets.quotes.map(
+              (quote) =>
+                `${quote.symbol.padEnd(7, ' ')} ${quote.price.toFixed(quote.price < 10 ? 3 : 2)} ${quote.currency} // ${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%`,
+            ),
+          ],
+        }
+      } catch (error) {
+        return {
+          ok: false,
+          output: [
+            'MARKETS :: UNAVAILABLE',
             `${error}`,
           ],
         }

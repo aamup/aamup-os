@@ -24,10 +24,10 @@ export const modules: AamupModule[] = [
   },
   {
     id: 'markets',
-    label: 'Market Watch',
+    label: 'Markets Intelligence',
     shortLabel: 'MARKETS',
-    state: 'planned',
-    description: 'User-configurable market and digital asset watchlists.',
+    state: 'online',
+    description: 'Live equity, ETF, and digital-asset watchlist intelligence.',
   },
   {
     id: 'news',
