@@ -1,6 +1,6 @@
 import { ActivityPanel } from '../components/ActivityPanel'
 import { CommandBar } from '../components/CommandBar'
-import { CoreDisplay } from '../components/CoreDisplay'
+import { GitHubDashboard } from '../components/GitHubDashboard'
 import { ModulePanel } from '../components/ModulePanel'
 import { StatusPanel } from '../components/StatusPanel'
 import { SystemPanel } from '../components/SystemPanel'
@@ -51,7 +51,7 @@ export function App() {
           <ModulePanel />
         </aside>
 
-        <CoreDisplay />
+        <GitHubDashboard />
 
         <aside className="right-rail">
           <ActivityPanel />
@@ -62,7 +62,7 @@ export function App() {
       <CommandBar telemetry={telemetry} telemetryStatus={telemetryStatus} />
       <footer className="footer-line">
         <span>AAMUP CORE / SECURE LOCAL SESSION</span>
-        <span>NO EXTERNAL SERVICES CONNECTED</span>
+        <span>GITHUB INTELLIGENCE / REMOTE LINK ACTIVE</span>
       </footer>
     </div>
   )
