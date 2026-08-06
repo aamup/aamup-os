@@ -1,10 +1,12 @@
 mod github_remote;
 mod markets;
+mod media;
 mod news;
 mod weather;
 
 use github_remote::get_github_remote_state;
 use markets::get_markets_intelligence;
+use media::{get_media_session, media_control};
 use news::get_news_intelligence;
 use std::{
     path::Path,
@@ -200,7 +202,9 @@ pub fn run() {
             get_github_remote_state,
             get_weather_intelligence,
             get_markets_intelligence,
-            get_news_intelligence
+            get_news_intelligence,
+            get_media_session,
+            media_control
         ])
         .run(tauri::generate_context!())
         .expect("error while running AAMUP OS");

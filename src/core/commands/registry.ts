@@ -1,3 +1,4 @@
+import { getMediaSession, mediaControl } from '../../modules/audio/media'
 import { getNewsIntelligence } from '../../modules/news/client'
 import { getMarketsIntelligence } from '../../modules/markets/client'
 import { getWeatherIntelligence } from '../../modules/weather/client'
@@ -22,7 +23,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -309,6 +310,56 @@ export const commandDefinitions: CommandDefinition[] = [
         'PIPELINE :: MEDIA INPUT -> WEB AUDIO FFT -> LIVE SPECTRUM/WAVEFORM',
       ],
     }),
+  },
+  {
+    name: 'media',
+    aliases: ['now', 'nowplaying'],
+    description: 'Inspect or control the active Linux MPRIS media session.',
+    usage: 'media [play-pause|next|previous]',
+    execute: async (args) => {
+      const session = await getMediaSession()
+
+      if (!session.available) {
+        return {
+          ok: false,
+          output: ['MEDIA :: NO ACTIVE MPRIS PLAYER'],
+        }
+      }
+
+      const action = args[0]?.toLowerCase()
+
+      if (
+        action === 'play-pause' ||
+        action === 'next' ||
+        action === 'previous'
+      ) {
+        await mediaControl(session.player, action)
+
+        return {
+          ok: true,
+          output: [
+            `MEDIA :: ${action.toUpperCase()} SENT TO ${session.player.toUpperCase()}`,
+          ],
+        }
+      }
+
+      if (action) {
+        return {
+          ok: false,
+          output: ['USAGE :: media [play-pause|next|previous]'],
+        }
+      }
+
+      return {
+        ok: true,
+        output: [
+          `MEDIA :: ${session.player.toUpperCase()} // ${session.status.toUpperCase()}`,
+          `TRACK :: ${session.title || 'UNKNOWN'}`,
+          `ARTIST :: ${session.artist || 'UNKNOWN'}`,
+          `ALBUM :: ${session.album || 'UNKNOWN'}`,
+        ],
+      }
+    },
   },
   {
     name: 'version',

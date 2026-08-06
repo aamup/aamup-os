@@ -4,6 +4,7 @@ import {
   useState,
 } from 'react'
 import { useAudioEngine } from '../hooks/useAudioEngine'
+import { useMediaSession } from '../hooks/useMediaSession'
 import type { AudioFrame } from '../modules/audio/engine'
 import { BeatDetector } from '../modules/audio/beat'
 import {
@@ -234,6 +235,12 @@ export function AudioDashboard() {
   const metricsUpdatedAt = useRef(0)
   const beatDetectorRef = useRef(new BeatDetector())
   const beatPulseRef = useRef(0)
+
+  const {
+    session: mediaSession,
+    error: mediaError,
+    control: mediaControl,
+  } = useMediaSession()
 
   const {
     status,
@@ -607,6 +614,82 @@ export function AudioDashboard() {
               {item.label}
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="audio-now-playing">
+        <div className="audio-now-playing__identity">
+          <span>NOW PLAYING</span>
+          <strong>
+            {mediaSession?.available
+              ? mediaSession.title || 'UNTITLED MEDIA'
+              : 'NO ACTIVE MEDIA SESSION'}
+          </strong>
+          <small>
+            {mediaSession?.available
+              ? `${mediaSession.artist || mediaSession.player}${mediaSession.album ? ` // ${mediaSession.album}` : ''}`
+              : 'START SPOTIFY, FIREFOX, OR ANOTHER MPRIS PLAYER'}
+          </small>
+        </div>
+
+        <div className="audio-now-playing__progress">
+          <div>
+            <span>
+              {mediaSession?.available
+                ? mediaSession.status.toUpperCase()
+                : 'OFFLINE'}
+            </span>
+            <span>
+              {mediaSession?.available
+                ? mediaSession.player.toUpperCase()
+                : 'MPRIS'}
+            </span>
+          </div>
+
+          <div className="audio-progress-track">
+            <i
+              style={{
+                width: `${mediaSession?.durationSeconds
+                  ? Math.min(
+                      100,
+                      Math.max(
+                        0,
+                        mediaSession.positionSeconds /
+                          mediaSession.durationSeconds *
+                          100,
+                      ),
+                    )
+                  : 0}%`,
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="audio-now-playing__controls">
+          <button
+            type="button"
+            disabled={!mediaSession?.available}
+            onClick={() => void mediaControl('previous')}
+          >
+            PREV
+          </button>
+          <button
+            className="audio-now-playing__primary"
+            type="button"
+            disabled={!mediaSession?.available}
+            onClick={() => void mediaControl('play-pause')}
+          >
+            {mediaSession?.status.toLowerCase() === 'playing'
+              ? 'PAUSE'
+              : 'PLAY'}
+          </button>
+          <button
+            type="button"
+            disabled={!mediaSession?.available}
+            onClick={() => void mediaControl('next')}
+          >
+            NEXT
+          </button>
         </div>
       </section>
 

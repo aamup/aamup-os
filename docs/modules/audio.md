@@ -87,3 +87,35 @@ fft
 - onset visualization history
 - Spotify playback metadata and controls
 - album art and track context
+
+## v0.4 — Linux media-session integration
+
+AAMUP OS now reads local MPRIS media sessions through `playerctl`.
+
+Supported players depend on the Linux application, but commonly include Spotify,
+Firefox, Chromium-based browsers, VLC, and other MPRIS-compatible players.
+
+### Now Playing
+
+The Audio dashboard shows:
+
+- active player
+- playback status
+- track title
+- artist
+- album
+- playback progress
+- previous / play-pause / next controls
+
+This path is local and does not require Spotify OAuth or a Spotify developer application.
+
+### Media commands
+
+```text
+media
+now
+nowplaying
+media play-pause
+media previous
+media next
+```
