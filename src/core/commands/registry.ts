@@ -1,3 +1,4 @@
+import { getNewsIntelligence } from '../../modules/news/client'
 import { getMarketsIntelligence } from '../../modules/markets/client'
 import { getWeatherIntelligence } from '../../modules/weather/client'
 import { getGitHubRemoteState } from '../../modules/github/remote'
@@ -21,7 +22,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | markets | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | news | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -255,6 +256,43 @@ export const commandDefinitions: CommandDefinition[] = [
             `${error}`,
           ],
         }
+      }
+    },
+  },
+  {
+    name: 'news',
+    aliases: ['headlines', 'feed'],
+    description: 'Inspect live news intelligence.',
+    usage: 'news [local|ai|tech]',
+    execute: async (args) => {
+      try {
+        const news = await getNewsIntelligence()
+        const mode = args[0]?.toLowerCase()
+        const category =
+          mode === 'local' ? 'LOCAL'
+          : mode === 'ai' ? 'AI'
+          : mode === 'tech' ? 'TECH'
+          : null
+
+        if (mode && category === null) {
+          return { ok: false, output: ['USAGE :: news [local|ai|tech]'] }
+        }
+
+        const articles = category
+          ? news.articles.filter((article) => article.category === category)
+          : news.articles
+
+        return {
+          ok: true,
+          output: [
+            `NEWS :: ${articles.length} HEADLINES // ${news.feedCount} FEEDS // ${news.errors.length} ERRORS`,
+            ...articles.slice(0, 8).map(
+              (article) => `[${article.category}] ${article.title} // ${article.source}`,
+            ),
+          ],
+        }
+      } catch (error) {
+        return { ok: false, output: ['NEWS :: UNAVAILABLE', `${error}`] }
       }
     },
   },

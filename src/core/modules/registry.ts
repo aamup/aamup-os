@@ -33,7 +33,7 @@ export const modules: AamupModule[] = [
     id: 'news',
     label: 'News Intelligence',
     shortLabel: 'NEWS',
-    state: 'planned',
+    state: 'online',
     description: 'Local and topic-focused information feeds.',
   },
   {
