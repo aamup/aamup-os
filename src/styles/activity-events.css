@@ -1,0 +1,27 @@
+.activity__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.activity__time {
+  color: #3f3f3f;
+  font-size: 7px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.activity__pulse--success {
+  background: #fff;
+  box-shadow: 0 0 9px rgba(255,255,255,0.55);
+}
+
+.activity__pulse--warning {
+  background: var(--red);
+}
+
+.activity__pulse--error {
+  background: var(--red);
+  box-shadow: 0 0 13px rgba(255,48,79,0.95);
+}
