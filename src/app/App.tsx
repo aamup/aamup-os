@@ -59,7 +59,7 @@ export function App() {
         </aside>
       </div>
 
-      <CommandBar />
+      <CommandBar telemetry={telemetry} telemetryStatus={telemetryStatus} />
       <footer className="footer-line">
         <span>AAMUP CORE / SECURE LOCAL SESSION</span>
         <span>NO EXTERNAL SERVICES CONNECTED</span>

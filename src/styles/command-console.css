@@ -1,0 +1,57 @@
+.command-console {
+  min-width: 0;
+}
+
+.command-console__history {
+  max-height: 138px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  background: rgba(4,4,4,0.96);
+}
+
+.command-console__empty,
+.command-console__entry {
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.045);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+}
+
+.command-console__empty {
+  color: #3f3f3f;
+}
+
+.command-console__entry:last-child {
+  border-bottom: 0;
+}
+
+.command-console__input {
+  color: #8b8b8b;
+}
+
+.command-console__input span {
+  margin-right: 7px;
+  color: var(--red);
+}
+
+.command-console__output {
+  display: grid;
+  gap: 4px;
+  margin-top: 5px;
+  color: #b8b8b8;
+  line-height: 1.45;
+}
+
+.command-console__entry--error .command-console__output {
+  color: #8e6269;
+}
+
+.command-console .command-bar {
+  border-top-color: rgba(255,255,255,0.035);
+}
+
+.command-bar__hint {
+  white-space: nowrap;
+}
