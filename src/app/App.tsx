@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ActivityPanel } from '../components/ActivityPanel'
+import { AudioDashboard } from '../components/AudioDashboard'
 import { CommandBar } from '../components/CommandBar'
 import { GitHubDashboard } from '../components/GitHubDashboard'
 import { MarketsDashboard } from '../components/MarketsDashboard'
@@ -14,7 +15,7 @@ import { useSystemTelemetry } from '../hooks/useSystemTelemetry'
 
 export function App() {
   const now = useClock()
-  const [activeModule, setActiveModule] = useState<'github' | 'weather' | 'markets' | 'news'>('github')
+  const [activeModule, setActiveModule] = useState<'github' | 'weather' | 'markets' | 'news' | 'music'>('github')
   const { telemetry, status: telemetryStatus } = useSystemTelemetry()
 
   const time = now.toLocaleTimeString([], {
@@ -62,7 +63,9 @@ export function App() {
             ? <WeatherDashboard />
             : activeModule === 'markets'
               ? <MarketsDashboard />
-              : <NewsDashboard />}
+              : activeModule === 'news'
+                ? <NewsDashboard />
+                : <AudioDashboard />}
 
         <aside className="right-rail">
           <ActivityPanel />

@@ -40,8 +40,8 @@ export const modules: AamupModule[] = [
     id: 'music',
     label: 'Audio Engine',
     shortLabel: 'AUDIO',
-    state: 'planned',
-    description: 'Playback metadata and real-time visualization pipeline.',
+    state: 'online',
+    description: 'Local real-time FFT spectrum and waveform analysis.',
   },
   {
     id: 'assistant',

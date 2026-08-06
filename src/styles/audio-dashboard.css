@@ -1,0 +1,214 @@
+.audio-dashboard {
+  position: relative;
+  min-width: 0;
+  min-height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255,48,79,.07), transparent 25rem),
+    #070707;
+}
+
+.audio-dashboard__header {
+  min-height: 104px;
+  padding: 20px 22px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.audio-eyebrow {
+  color: var(--red);
+  font-size: 8px;
+  letter-spacing: .28em;
+}
+
+.audio-dashboard__header h1 {
+  margin: 9px 0 5px;
+  font-size: clamp(23px, 3vw, 40px);
+  letter-spacing: .04em;
+}
+
+.audio-dashboard__header p {
+  margin: 0;
+  color: #555;
+  font-size: 8px;
+  letter-spacing: .14em;
+}
+
+.audio-controls {
+  display: flex;
+  gap: 9px;
+}
+
+.audio-live,
+.audio-controls button {
+  min-height: 30px;
+  padding: 0 11px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: #0a0a0a;
+  color: #777;
+  font-size: 7px;
+  letter-spacing: .13em;
+}
+
+.audio-live {
+  gap: 7px;
+}
+
+.audio-live i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #555;
+}
+
+.audio-live--live i {
+  background: var(--red);
+  box-shadow: 0 0 10px var(--red);
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+.audio-live--error i {
+  background: #aaa;
+}
+
+.audio-controls button {
+  cursor: pointer;
+}
+
+.audio-controls button:hover:not(:disabled) {
+  color: white;
+  border-color: var(--line-strong);
+}
+
+.audio-controls button:disabled {
+  cursor: default;
+  opacity: .45;
+}
+
+.audio-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--line);
+}
+
+.audio-kpis article {
+  padding: 14px 18px;
+  border-right: 1px solid var(--line);
+}
+
+.audio-kpis article:last-child {
+  border-right: 0;
+}
+
+.audio-kpis span {
+  display: block;
+  color: #505050;
+  font-size: 7px;
+  letter-spacing: .17em;
+}
+
+.audio-kpis strong {
+  display: block;
+  margin-top: 7px;
+  color: #ddd;
+  font-size: clamp(17px, 2vw, 26px);
+  font-weight: 300;
+}
+
+.audio-kpis small {
+  display: block;
+  margin-top: 4px;
+  color: #454545;
+  font-size: 7px;
+  letter-spacing: .08em;
+}
+
+.audio-visualizer {
+  min-height: 390px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-rows: 26px minmax(300px, 1fr) 26px;
+  border-bottom: 1px solid var(--line);
+}
+
+.audio-visualizer__labels,
+.audio-visualizer__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #3e3e3e;
+  font-size: 6px;
+  letter-spacing: .12em;
+}
+
+.audio-visualizer canvas {
+  display: block;
+  width: 100%;
+  height: 330px;
+  border: 1px solid rgba(255,255,255,.05);
+  background: #070707;
+}
+
+.audio-input-note {
+  min-height: 76px;
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 22px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+
+.audio-input-note span {
+  display: block;
+  color: #4b4b4b;
+  font-size: 7px;
+  letter-spacing: .15em;
+}
+
+.audio-input-note strong {
+  display: block;
+  margin-top: 7px;
+  color: #aaa;
+  font-size: 9px;
+  letter-spacing: .08em;
+}
+
+.audio-input-note p {
+  margin: 0;
+  color: #555;
+  font-size: 8px;
+  line-height: 1.55;
+}
+
+.audio-dashboard__footer {
+  min-height: 30px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: #3d3d3d;
+  font-size: 7px;
+  letter-spacing: .1em;
+}
+
+@media (max-width: 900px) {
+  .audio-dashboard__header {
+    flex-direction: column;
+  }
+
+  .audio-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .audio-input-note {
+    grid-template-columns: 1fr;
+  }
+}

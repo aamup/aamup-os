@@ -22,7 +22,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | markets | news | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -295,6 +295,20 @@ export const commandDefinitions: CommandDefinition[] = [
         return { ok: false, output: ['NEWS :: UNAVAILABLE', `${error}`] }
       }
     },
+  },
+  {
+    name: 'audio',
+    aliases: ['music', 'visualizer', 'fft'],
+    description: 'Inspect the local Audio Engine.',
+    execute: () => ({
+      ok: true,
+      output: [
+        'AUDIO ENGINE :: LOCAL FFT VISUALIZER READY',
+        'INPUT :: USER-GESTURE CAPTURE REQUIRED',
+        'OPEN AUDIO MODULE // SELECT START INPUT',
+        'PIPELINE :: MEDIA INPUT -> WEB AUDIO FFT -> LIVE SPECTRUM/WAVEFORM',
+      ],
+    }),
   },
   {
     name: 'version',
