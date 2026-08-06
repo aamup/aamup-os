@@ -24,7 +24,9 @@ export async function executeCommand(
       const result = await definition.execute(args, context)
 
       eventBus.emit({
-        source: 'COMMAND',
+        source: name === 'github' || name === 'git' || name === 'repo'
+          ? 'GITHUB'
+          : 'COMMAND',
         level: result.ok ? 'success' : 'warning',
         message: `${name} command executed`,
       })

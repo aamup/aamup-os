@@ -1,3 +1,4 @@
+import { getGitRepositoryState } from '../../modules/github/repository'
 import { brand } from '../config/brand'
 import type { CommandDefinition } from './types'
 
@@ -17,7 +18,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | version | clear',
+        'COMMANDS :: help | system | status | modules | github | version | clear',
         'TIP :: module names such as github or weather return their current state',
       ],
     }),
@@ -74,6 +75,25 @@ export const commandDefinitions: CommandDefinition[] = [
         (module) => `${module.shortLabel.padEnd(8, ' ')} :: ${module.state.toUpperCase()}`,
       ),
     }),
+  },
+  {
+    name: 'github',
+    aliases: ['git', 'repo'],
+    description: 'Inspect the AAMUP OS Git repository.',
+    execute: async () => {
+      const repo = await getGitRepositoryState()
+
+      return {
+        ok: true,
+        output: [
+          `REPOSITORY :: ${repo.branch} @ ${repo.headShort}`,
+          `HEAD :: ${repo.headMessage}`,
+          `COMMITS ${repo.commitCount} // CHANGED ${repo.changedFiles} // ${repo.clean ? 'CLEAN' : 'DIRTY'}`,
+          `SYNC :: AHEAD ${repo.ahead} // BEHIND ${repo.behind}`,
+          `ORIGIN :: ${repo.remote ?? 'NOT CONFIGURED'}`,
+        ],
+      }
+    },
   },
   {
     name: 'version',

@@ -1,4 +1,4 @@
-export type EventSource = 'CORE' | 'SYSTEM' | 'COMMAND' | 'MODULES' | 'UI'
+export type EventSource = 'CORE' | 'SYSTEM' | 'COMMAND' | 'MODULES' | 'GITHUB' | 'UI'
 export type EventLevel = 'info' | 'success' | 'warning' | 'error'
 
 export interface AamupEvent {

@@ -12,8 +12,8 @@ export const modules: AamupModule[] = [
     id: 'github',
     label: 'GitHub Intelligence',
     shortLabel: 'GITHUB',
-    state: 'planned',
-    description: 'Repository activity, commits, pull requests, and build state.',
+    state: 'online',
+    description: 'Local branch, commit, working-tree, remote, and sync intelligence.',
   },
   {
     id: 'weather',

@@ -3,6 +3,8 @@ use std::{
     sync::{Mutex, OnceLock},
 };
 
+use std::process::Command;
+
 use sysinfo::{Disks, System};
 
 static SYSTEM: OnceLock<Mutex<System>> = OnceLock::new();
@@ -47,19 +49,15 @@ fn get_system_telemetry() -> Result<SystemTelemetry, String> {
         .find(|disk| disk.mount_point() == Path::new("/"));
 
     let (total_disk, available_disk) = match root_disk {
-        Some(disk) => (
-            disk.total_space(),
-            disk.available_space(),
-        ),
-        None => disks.iter().fold(
-            (0_u64, 0_u64),
-            |(total, available), disk| {
+        Some(disk) => (disk.total_space(), disk.available_space()),
+        None => disks
+            .iter()
+            .fold((0_u64, 0_u64), |(total, available), disk| {
                 (
                     total + disk.total_space(),
                     available + disk.available_space(),
                 )
-            },
-        ),
+            }),
     };
 
     let disk = if total_disk > 0 {
@@ -68,8 +66,7 @@ fn get_system_telemetry() -> Result<SystemTelemetry, String> {
         0.0
     };
 
-    let hostname =
-        System::host_name().unwrap_or_else(|| "UNKNOWN".to_string());
+    let hostname = System::host_name().unwrap_or_else(|| "UNKNOWN".to_string());
 
     let os_name = System::long_os_version()
         .or_else(System::name)
@@ -86,14 +83,117 @@ fn get_system_telemetry() -> Result<SystemTelemetry, String> {
     })
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GitRepositoryState {
+    branch: String,
+    head_short: String,
+    head_message: String,
+    commit_count: u64,
+    changed_files: usize,
+    ahead: u64,
+    behind: u64,
+    remote: Option<String>,
+    clean: bool,
+}
+
+fn git_repository_dir() -> Result<std::path::PathBuf, String> {
+    if let Ok(explicit) = std::env::var("AAMUP_REPO_PATH") {
+        let path = std::path::PathBuf::from(explicit);
+        if path.join(".git").exists() {
+            return Ok(path);
+        }
+    }
+
+    let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+
+    manifest
+        .parent()
+        .map(std::path::Path::to_path_buf)
+        .ok_or_else(|| "unable to resolve AAMUP repository path".to_string())
+}
+
+fn run_git(repo: &std::path::Path, args: &[&str]) -> Result<String, String> {
+    let output = Command::new("git")
+        .arg("-C")
+        .arg(repo)
+        .args(args)
+        .output()
+        .map_err(|error| format!("unable to execute git: {error}"))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+
+        return Err(if stderr.is_empty() {
+            format!("git command failed: git {}", args.join(" "))
+        } else {
+            stderr
+        });
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+}
+
+#[tauri::command]
+fn get_git_repository_state() -> Result<GitRepositoryState, String> {
+    let repo = git_repository_dir()?;
+
+    let branch = run_git(&repo, &["branch", "--show-current"])?;
+    let head_short = run_git(&repo, &["rev-parse", "--short", "HEAD"])?;
+    let head_message = run_git(&repo, &["log", "-1", "--pretty=%s"])?;
+
+    let commit_count = run_git(&repo, &["rev-list", "--count", "HEAD"])?
+        .parse::<u64>()
+        .unwrap_or(0);
+
+    let status = run_git(&repo, &["status", "--porcelain"])?;
+    let changed_files = status
+        .lines()
+        .filter(|line| !line.trim().is_empty())
+        .count();
+
+    let remote = run_git(&repo, &["remote", "get-url", "origin"]).ok();
+
+    let (ahead, behind) = match run_git(
+        &repo,
+        &["rev-list", "--left-right", "--count", "@{upstream}...HEAD"],
+    ) {
+        Ok(counts) => {
+            let mut parts = counts.split_whitespace();
+            let behind = parts
+                .next()
+                .and_then(|value| value.parse::<u64>().ok())
+                .unwrap_or(0);
+            let ahead = parts
+                .next()
+                .and_then(|value| value.parse::<u64>().ok())
+                .unwrap_or(0);
+
+            (ahead, behind)
+        }
+        Err(_) => (0, 0),
+    };
+
+    Ok(GitRepositoryState {
+        branch,
+        head_short,
+        head_message,
+        commit_count,
+        changed_files,
+        ahead,
+        behind,
+        remote,
+        clean: changed_files == 0,
+    })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(
-            tauri::generate_handler![
-                get_system_telemetry
-            ]
-        )
+        .invoke_handler(tauri::generate_handler![
+            get_system_telemetry,
+            get_git_repository_state
+        ])
         .run(tauri::generate_context!())
         .expect("error while running AAMUP OS");
 }
