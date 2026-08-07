@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ActivityPanel } from '../components/ActivityPanel'
 import { AssistantDashboard } from '../components/AssistantDashboard'
 import { AudioDashboard } from '../components/AudioDashboard'
@@ -14,10 +14,40 @@ import { brand } from '../core/config/brand'
 import { useClock } from '../hooks/useClock'
 import { useSystemTelemetry } from '../hooks/useSystemTelemetry'
 
+type ActiveModule =
+  | 'github'
+  | 'weather'
+  | 'markets'
+  | 'news'
+  | 'music'
+  | 'assistant'
+
 export function App() {
   const now = useClock()
-  const [activeModule, setActiveModule] = useState<'github' | 'weather' | 'markets' | 'news' | 'music' | 'assistant'>('github')
+  const [activeModule, setActiveModule] = useState<ActiveModule>('github')
   const { telemetry, status: telemetryStatus } = useSystemTelemetry()
+
+
+  useEffect(() => {
+    const handleNavigation = (event: Event) => {
+      const module =
+        (event as CustomEvent<{ module?: string }>).detail?.module
+
+      if (
+        module === 'github' ||
+        module === 'weather' ||
+        module === 'markets' ||
+        module === 'news' ||
+        module === 'music' ||
+        module === 'assistant'
+      ) {
+        setActiveModule(module)
+      }
+    }
+
+    window.addEventListener('aamup:navigate', handleNavigation)
+    return () => window.removeEventListener('aamup:navigate', handleNavigation)
+  }, [])
 
   const time = now.toLocaleTimeString([], {
     hour: '2-digit',

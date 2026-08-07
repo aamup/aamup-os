@@ -1,4 +1,4 @@
-import { runAssistantQuery } from '../../modules/assistant/router'
+import { runAssistantSessionQuery } from '../../modules/assistant/session'
 import { getMediaSession, mediaControl } from '../../modules/audio/media'
 import { getNewsIntelligence } from '../../modules/news/client'
 import { getMarketsIntelligence } from '../../modules/markets/client'
@@ -377,7 +377,15 @@ export const commandDefinitions: CommandDefinition[] = [
         }
       }
 
-      const result = await runAssistantQuery(input)
+      const result = await runAssistantSessionQuery(input)
+
+      if (result.action?.type === 'navigate') {
+        window.dispatchEvent(
+          new CustomEvent('aamup:navigate', {
+            detail: { module: result.action.module },
+          }),
+        )
+      }
 
       return {
         ok: result.ok,
