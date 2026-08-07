@@ -68,6 +68,38 @@ export async function executeCommand(
     }
   }
 
+  const assistant = resolveCommand('ask')
+
+  if (assistant && rawCommand.trim()) {
+    try {
+      const assistantResult = await assistant.execute(
+        rawCommand.trim().split(/\s+/).filter(Boolean),
+        context,
+      )
+
+      eventBus.emit({
+        source: 'COMMAND',
+        level: assistantResult.ok ? 'success' : 'warning',
+        message: 'natural-language input routed to assistant',
+      })
+
+      return assistantResult
+    } catch (error) {
+      eventBus.emit({
+        source: 'COMMAND',
+        level: 'error',
+        message: 'assistant fallback failed',
+      })
+
+      return {
+        ok: false,
+        output: [
+          `ASSISTANT ERROR :: ${error instanceof Error ? error.message : String(error)}`,
+        ],
+      }
+    }
+  }
+
   eventBus.emit({
     source: 'COMMAND',
     level: 'warning',
