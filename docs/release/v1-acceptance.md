@@ -1,6 +1,6 @@
 # AAMUP OS v1.0 Release Acceptance
 
-Release candidate: `1.0.0-rc.1`
+Release: `1.0.0`
 
 ## Automated release gates
 

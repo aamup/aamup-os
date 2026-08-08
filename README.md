@@ -10,7 +10,7 @@
 
 The project started as a command-center shell and is evolving into a desktop operating surface for system telemetry, repository intelligence, external data modules, visualizations, automation, and assistant-driven workflows.
 
-> Current stage: native desktop runtime, live system telemetry, typed event bus, command engine, and local Git repository intelligence.
+> Current stage: **AAMUP OS v1.0.0 stable release** — native personal intelligence desktop with live modules, local assistant, persistent memory, conversation history, and Linux release packaging.
 
 ---
 
@@ -215,10 +215,11 @@ Rust:
 cd src-tauri
 cargo fmt -- --check
 cargo check
+cargo test --lib
 cargo clippy --all-targets --all-features -- -D warnings
 ```
 
-GitHub Actions runs the same validation on pushes and pull requests to `main`.
+GitHub Actions runs the same validation on `main`, the v1 release-candidate branch, and pull requests to `main`.
 
 ---
 
@@ -230,18 +231,18 @@ GitHub Actions runs the same validation on pushes and pull requests to `main`.
 - [x] Typed event bus
 - [x] Command engine
 - [x] Local Git repository intelligence
-- [ ] Remote GitHub repository metadata
-- [ ] Pull request and issue intelligence
-- [ ] GitHub Actions / CI intelligence inside AAMUP OS
-- [ ] Weather module
-- [ ] News module
-- [ ] Market module
-- [ ] Audio visualization engine
-- [ ] Assistant interface
+- [x] Remote GitHub repository metadata
+- [x] Pull request and issue intelligence
+- [x] GitHub Actions / CI intelligence inside AAMUP OS
+- [x] Weather module
+- [x] News module
+- [x] Market module
+- [x] Audio visualization engine
+- [x] Assistant interface
 - [ ] Plugin SDK
 - [ ] Theme system
-- [ ] Desktop release pipeline
-- [ ] v1.0
+- [x] Desktop release pipeline
+- [x] v1.0
 
 ---
 
@@ -298,7 +299,7 @@ External integrations should use environment variables or OS-managed credential 
 
 ## Status
 
-AAMUP OS is under active development and is not yet a stable 1.0 release.
+AAMUP OS v1.0.0 is the first stable release. Active development continues for post-1.0 features and maintenance.
 
 Repository:
 
