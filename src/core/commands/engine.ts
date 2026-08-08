@@ -17,7 +17,13 @@ export async function executeCommand(
   const name = (tokens.shift() ?? '').toLowerCase()
   const args = tokens
 
-  const definition = resolveCommand(name)
+  let definition = resolveCommand(name)
+
+  // `help` by itself is the command. Natural-language phrases that begin
+  // with "help" belong to Assistant Core instead.
+  if (name === 'help' && args.length > 0) {
+    definition = undefined
+  }
 
   if (definition) {
     try {
