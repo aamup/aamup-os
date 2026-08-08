@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - agent/v1-release-hardening
   pull_request:
     branches:
       - main
