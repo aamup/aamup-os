@@ -416,15 +416,24 @@ export async function runAssistantSessionQuery(
       ' forget context ',
     ])
   ) {
-    await summarizeSession(context, true)
-      .catch(() => context)
+    const summarized =
+      await summarizeSession(context, true)
+        .catch(() => context)
+
+    const createdSummary =
+      summarized.lastSummaryTurn >
+      context.lastSummaryTurn
 
     const fresh = createAssistantContext()
     const result = wrap({
       intent: 'help',
       title: 'ASSISTANT CORE // CONTEXT CLEARED',
       ok: true,
-      lines: ['Conversation context summarized and reset.'],
+      lines: [
+        createdSummary
+          ? 'Conversation summary created and context reset.'
+          : 'Context reset. No new summary was created for this session.',
+      ],
     }, fresh)
 
     if (!suppliedContext) commandContext = fresh

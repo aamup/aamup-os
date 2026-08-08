@@ -35,21 +35,58 @@ interface ParsedCandidate {
   confidence: number
 }
 
+export interface MemoryCandidateExtractionResult {
+  raw: string
+  parsed: ParsedCandidate[]
+  queued: MemoryCandidate[]
+}
+
+function normalizeCandidateLine(line: string) {
+  return line
+    .replace(/^[-*]\s*/, '')
+    .replace(/\\t/g, '\t')
+    .trim()
+}
+
 function parseCandidateLine(
   line: string,
 ): ParsedCandidate | null {
-  if (!line.startsWith('MEMORY\t')) {
+  const normalized = normalizeCandidateLine(line)
+
+  if (
+    !/^MEMORY(?:\t|\s*\|\s*|\s{2,})/i.test(normalized)
+  ) {
     return null
   }
 
-  const parts = line.split('\t')
+  const parts = normalized.includes('\t')
+    ? normalized.split('\t')
+    : normalized.includes('|')
+      ? normalized.split(/\s*\|\s*/)
+      : normalized.split(/\s{2,}/)
 
   if (parts.length < 4) {
     return null
   }
 
-  const confidence = Number(parts[1])
-  const category = parts[2]?.trim().toLowerCase()
+  if (parts[0]?.trim().toUpperCase() !== 'MEMORY') {
+    return null
+  }
+
+  const confidence = Number(
+    parts[1]
+      ?.replace('%', '')
+      .trim(),
+  )
+
+  const normalizedConfidence =
+    confidence > 1
+      ? confidence / 100
+      : confidence
+
+  const category =
+    parts[2]?.trim().toLowerCase()
+
   const content = parts
     .slice(3)
     .join(' ')
@@ -57,9 +94,9 @@ function parseCandidateLine(
     .trim()
 
   if (
-    !Number.isFinite(confidence) ||
-    confidence < 0.75 ||
-    confidence > 1
+    !Number.isFinite(normalizedConfidence) ||
+    normalizedConfidence < 0.70 ||
+    normalizedConfidence > 1
   ) {
     return null
   }
@@ -86,7 +123,7 @@ function parseCandidateLine(
   return {
     content,
     category,
-    confidence,
+    confidence: normalizedConfidence,
   }
 }
 
@@ -97,7 +134,7 @@ function parseCandidates(
 
   return response
     .split(/\r?\n/)
-    .map((line) => parseCandidateLine(line.trim()))
+    .map((line) => parseCandidateLine(line))
     .filter(
       (candidate): candidate is ParsedCandidate =>
         candidate !== null,
@@ -115,25 +152,29 @@ function parseCandidates(
     .slice(0, 4)
 }
 
-export async function queueMemoryCandidatesFromSummary(
+export async function extractMemoryCandidatesFromSummary(
   summary: string,
   sessionId: string,
-): Promise<MemoryCandidate[]> {
+): Promise<MemoryCandidateExtractionResult> {
   const trimmed = summary.trim()
 
   if (!trimmed || !sessionId.trim()) {
-    return []
+    return {
+      raw: '',
+      parsed: [],
+      queued: [],
+    }
   }
 
   const response = await queryAssistantModel(
     [
-      'Extract only durable facts that would be useful in future AAMUP conversations.',
+      'Extract only durable facts useful in future AAMUP conversations.',
       'Good candidates: stable preferences, project decisions, ongoing goals, durable constraints, and identity facts.',
       'Do not extract temporary status, one-time actions, guesses, assistant claims, live data, passwords, API keys, tokens, credentials, medical diagnoses, financial account details, legal case specifics, precise addresses, or private third-party facts.',
       'Use only facts explicitly supported by the supplied summary.',
       'Return at most 4 lines.',
-      'Each accepted line MUST use this exact tab-separated format:',
-      'MEMORY<TAB>confidence<TAB>category<TAB>atomic fact',
+      'Use this format for each candidate:',
+      'MEMORY | confidence | category | atomic fact',
       'Allowed categories: preference, project, goal, constraint, decision, identity, general.',
       'Confidence must be between 0 and 1.',
       'Use NONE if there are no durable candidates.',
@@ -161,5 +202,22 @@ export async function queueMemoryCandidatesFromSummary(
     }
   }
 
-  return queued
+  return {
+    raw: response.content,
+    parsed,
+    queued,
+  }
+}
+
+export async function queueMemoryCandidatesFromSummary(
+  summary: string,
+  sessionId: string,
+): Promise<MemoryCandidate[]> {
+  const result =
+    await extractMemoryCandidatesFromSummary(
+      summary,
+      sessionId,
+    )
+
+  return result.queued
 }

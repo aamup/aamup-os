@@ -14,6 +14,9 @@ import {
   recallRelevantMemories,
 } from '../../modules/memory/retrieval'
 import {
+  extractMemoryCandidatesFromSummary,
+} from '../../modules/memory/promotion'
+import {
   forgetMemory,
   listMemories,
   listMemoryCandidates,
@@ -51,6 +54,7 @@ export const commandDefinitions: CommandDefinition[] = [
         'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | brief | memory | recall | history | embedding | remember | forget | ask | model | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
         'TIP :: memory candidates | memory approve <id> | memory reject <id>',
+        'TIP :: memory scan | memory candidate-status',
       ],
     }),
   },
@@ -583,9 +587,83 @@ export const commandDefinitions: CommandDefinition[] = [
     name: 'memory',
     aliases: ['memories'],
     description: 'List or search persistent local memory.',
-    usage: 'memory [search text|candidates|approve <id>|reject <id>|promote <id>]',
+    usage: 'memory [search text|candidates|candidate-status|scan|approve <id>|reject <id>|promote <id>]',
     execute: async (args) => {
       const mode = args[0]?.toLowerCase()
+
+      if (mode === 'candidate-status') {
+        if (args.length !== 1) {
+          return {
+            ok: false,
+            output: ['USAGE :: memory candidate-status'],
+          }
+        }
+
+        const [pending, summaries] = await Promise.all([
+          listMemoryCandidates('pending', 100),
+          listConversationSummaries(5),
+        ])
+
+        return {
+          ok: true,
+          output: [
+            `MEMORY CANDIDATES :: ${pending.length} PENDING`,
+            `CONVERSATION SUMMARIES :: ${summaries.length} RECENT`,
+            summaries[0]
+              ? `LATEST SUMMARY :: #${summaries[0].id} // TURNS ${summaries[0].turnCount}`
+              : 'LATEST SUMMARY :: NONE',
+          ],
+        }
+      }
+
+      if (mode === 'scan') {
+        if (args.length !== 1) {
+          return {
+            ok: false,
+            output: ['USAGE :: memory scan'],
+          }
+        }
+
+        const summaries =
+          await listConversationSummaries(1)
+
+        const latest = summaries[0]
+
+        if (!latest) {
+          return {
+            ok: false,
+            output: [
+              'MEMORY SCAN :: NO CONVERSATION SUMMARY AVAILABLE',
+              'Have at least 3 Assistant turns, then run: clear context',
+            ],
+          }
+        }
+
+        const extraction =
+          await extractMemoryCandidatesFromSummary(
+            latest.summary,
+            latest.sessionId,
+          )
+
+        return {
+          ok: true,
+          output: [
+            `MEMORY SCAN :: SUMMARY #${latest.id}`,
+            `PARSED :: ${extraction.parsed.length}`,
+            `QUEUED :: ${extraction.queued.length}`,
+            extraction.parsed.length
+              ? `MODEL OUTPUT :: ${extraction.parsed.length} ACCEPTED CANDIDATE LINE(S)`
+              : 'MODEL OUTPUT :: NO ACCEPTED CANDIDATE LINES',
+            ...extraction.queued.map(
+              (candidate) =>
+                `#${candidate.id} // ${Math.round(candidate.confidence * 100)}% // ${candidate.category.toUpperCase()} // ${candidate.content}`,
+            ),
+            extraction.parsed.length === 0
+              ? `RAW :: ${extraction.raw.replace(/\s+/g, ' ').slice(0, 240)}`
+              : 'REVIEW :: memory candidates',
+          ],
+        }
+      }
 
       if (mode === 'candidates') {
         if (args.length !== 1) {
