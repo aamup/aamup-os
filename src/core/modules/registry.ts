@@ -44,6 +44,13 @@ export const modules: AamupModule[] = [
     description: 'Local real-time FFT spectrum and waveform analysis.',
   },
   {
+    id: 'briefing',
+    label: 'Daily Intelligence',
+    shortLabel: 'BRIEF',
+    state: 'online',
+    description: 'Grounded daily snapshot across weather, markets, news, GitHub, system, and memory.',
+  },
+  {
     id: 'memory',
     label: 'Memory Core',
     shortLabel: 'MEMORY',

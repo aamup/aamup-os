@@ -1,4 +1,8 @@
 import {
+  formatDailyBriefingLines,
+  getDailyBriefing,
+} from '../../modules/briefing/client'
+import {
   forgetMemory,
   listMemories,
   rememberMemory,
@@ -31,7 +35,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | memory | remember | forget | ask | model | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | brief | memory | remember | forget | ask | model | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -365,6 +369,29 @@ export const commandDefinitions: CommandDefinition[] = [
           `TRACK :: ${session.title || 'UNKNOWN'}`,
           `ARTIST :: ${session.artist || 'UNKNOWN'}`,
           `ALBUM :: ${session.album || 'UNKNOWN'}`,
+        ],
+      }
+    },
+  },
+  {
+    name: 'brief',
+    aliases: ['briefing'],
+    description: 'Generate a grounded Daily Intelligence snapshot.',
+    usage: 'brief [me]',
+    execute: async () => {
+      const briefing = await getDailyBriefing()
+
+      window.dispatchEvent(
+        new CustomEvent('aamup:navigate', {
+          detail: { module: 'briefing' },
+        }),
+      )
+
+      return {
+        ok: briefing.healthySources > 0,
+        output: [
+          'DAILY INTELLIGENCE // v0.5',
+          ...formatDailyBriefingLines(briefing),
         ],
       }
     },

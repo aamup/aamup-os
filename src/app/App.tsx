@@ -3,6 +3,7 @@ import { ActivityPanel } from '../components/ActivityPanel'
 import { AssistantDashboard } from '../components/AssistantDashboard'
 import { AudioDashboard } from '../components/AudioDashboard'
 import { CommandBar } from '../components/CommandBar'
+import { DailyBriefingDashboard } from '../components/DailyBriefingDashboard'
 import { GitHubDashboard } from '../components/GitHubDashboard'
 import { MarketsDashboard } from '../components/MarketsDashboard'
 import { MemoryDashboard } from '../components/MemoryDashboard'
@@ -21,6 +22,7 @@ type ActiveModule =
   | 'markets'
   | 'news'
   | 'music'
+  | 'briefing'
   | 'memory'
   | 'assistant'
 
@@ -41,6 +43,7 @@ export function App() {
         module === 'markets' ||
         module === 'news' ||
         module === 'music' ||
+        module === 'briefing' ||
         module === 'memory' ||
         module === 'assistant'
       ) {
@@ -101,9 +104,11 @@ export function App() {
                 ? <NewsDashboard />
                 : activeModule === 'music'
                   ? <AudioDashboard />
-                  : activeModule === 'memory'
-                    ? <MemoryDashboard />
-                    : <AssistantDashboard />}
+                  : activeModule === 'briefing'
+                    ? <DailyBriefingDashboard />
+                    : activeModule === 'memory'
+                      ? <MemoryDashboard />
+                      : <AssistantDashboard />}
 
         <aside className="right-rail">
           <ActivityPanel />

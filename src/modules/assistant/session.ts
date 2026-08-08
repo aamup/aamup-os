@@ -15,6 +15,7 @@ export type AssistantModule =
   | 'markets'
   | 'news'
   | 'music'
+  | 'briefing'
   | 'memory'
   | 'assistant'
 
@@ -60,6 +61,7 @@ function moduleForIntent(
   intent: AssistantIntent,
   fallback: AssistantModule | null,
 ): AssistantModule | null {
+  if (intent === 'briefing') return 'briefing'
   if (intent === 'weather') return 'weather'
   if (intent === 'markets') return 'markets'
   if (intent === 'news') return 'news'

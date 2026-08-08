@@ -1,4 +1,8 @@
 import { invoke } from '@tauri-apps/api/core'
+import {
+  formatDailyBriefingLines,
+  getDailyBriefing,
+} from '../briefing/client'
 import { getGitHubRemoteState } from '../github/remote'
 import { getGitRepositoryState } from '../github/repository'
 import { getMarketsIntelligence } from '../markets/client'
@@ -12,6 +16,7 @@ import {
 
 export type AssistantIntent =
   | 'help'
+  | 'briefing'
   | 'weather'
   | 'markets'
   | 'news'
@@ -122,6 +127,20 @@ function detectMediaAction(value: string): MediaAction | null {
 function rankNativeIntent(value: string): IntentCandidate | null {
   const wordSet = words(value)
   const candidates: IntentCandidate[] = []
+
+  if (
+    value === 'brief me' ||
+    value === 'brief' ||
+    hasAnyPhrase(value, [
+      'daily brief',
+      'daily briefing',
+      'morning brief',
+      'give me my brief',
+      'give me a brief',
+    ])
+  ) {
+    candidates.push({ intent: 'briefing', score: 14 })
+  }
 
   const mediaAction = detectMediaAction(value)
   const mediaTarget = hasAnyWord(wordSet, [
@@ -278,6 +297,17 @@ function rankNativeIntent(value: string): IntentCandidate | null {
   return best && best.score >= NATIVE_INTENT_THRESHOLD
     ? best
     : null
+}
+
+async function handleBriefing(): Promise<AssistantResult> {
+  const briefing = await getDailyBriefing()
+
+  return {
+    intent: 'briefing',
+    title: 'DAILY INTELLIGENCE // v0.5',
+    ok: briefing.healthySources > 0,
+    lines: formatDailyBriefingLines(briefing),
+  }
 }
 
 function formatUptime(seconds: number) {
@@ -478,6 +508,7 @@ function helpResult(): AssistantResult {
     title: 'ASSISTANT CORE // CAPABILITIES',
     ok: true,
     lines: [
+      'Ask for a grounded daily brief across all live modules.',
       'Ask about weather, forecasts, rain, or temperature.',
       'Ask for markets, stocks, crypto, or watchlist status.',
       'Ask for local, AI, or technology headlines.',
@@ -501,6 +532,8 @@ export async function runAssistantQuery(
     const candidate = rankNativeIntent(value)
 
     switch (candidate?.intent) {
+      case 'briefing':
+        return await handleBriefing()
       case 'weather':
         return await handleWeather(value)
       case 'markets':
