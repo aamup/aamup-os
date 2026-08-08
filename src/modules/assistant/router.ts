@@ -362,8 +362,8 @@ export async function runAssistantQuery(
 
   try {
     if (
+      value.trim() === 'help' ||
       includesAny(value, [
-        ' help ',
         ' what can you do ',
         ' capabilities ',
       ])
