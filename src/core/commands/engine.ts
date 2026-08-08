@@ -19,9 +19,50 @@ export async function executeCommand(
 
   let definition = resolveCommand(name)
 
-  // `help` by itself is the command. Natural-language phrases that begin
-  // with "help" belong to Assistant Core instead.
-  if (name === 'help' && args.length > 0) {
+  const acceptsExplicitArgs = (
+    command: CommandDefinition,
+    values: string[],
+  ) => {
+    if (values.length === 0) return true
+
+    const normalized = values.map((value) => value.toLowerCase())
+
+    if (command.name === 'ask') return true
+
+    if (command.name === 'github') {
+      return normalized.length === 1 && [
+        'local',
+        'remote',
+        'commits',
+        'issues',
+        'prs',
+        'ci',
+      ].includes(normalized[0])
+    }
+
+    if (command.name === 'news') {
+      return normalized.length === 1 && [
+        'local',
+        'ai',
+        'tech',
+      ].includes(normalized[0])
+    }
+
+    if (command.name === 'media') {
+      return normalized.length === 1 && [
+        'play-pause',
+        'next',
+        'previous',
+      ].includes(normalized[0])
+    }
+
+    return false
+  }
+
+  if (
+    definition &&
+    !acceptsExplicitArgs(definition, args)
+  ) {
     definition = undefined
   }
 

@@ -39,36 +39,155 @@ interface SystemTelemetry {
   osName: string
 }
 
+type NativeIntent = Exclude<
+  AssistantIntent,
+  'help' | 'model' | 'unknown'
+>
+
+interface IntentCandidate {
+  intent: NativeIntent
+  score: number
+}
+
+const NATIVE_INTENT_THRESHOLD = 6
+
 function normalize(input: string) {
   return input
     .trim()
     .toLowerCase()
-    .replace(/[?!.,]/g, ' ')
+    .replace(/[?!.,:;]/g, ' ')
     .replace(/\s+/g, ' ')
 }
 
-function includesAny(
-  value: string,
-  terms: string[],
-) {
-  return terms.some((term) => value.includes(term))
+function words(value: string) {
+  return new Set(value.split(' ').filter(Boolean))
 }
 
-function weatherIntent(value: string) {
-  return includesAny(value, [
-    'weather',
-    'temperature',
-    'forecast',
-    'rain',
-    'outside',
+function hasAnyWord(wordSet: Set<string>, terms: string[]) {
+  return terms.some((term) => wordSet.has(term))
+}
+
+function hasAnyPhrase(value: string, phrases: string[]) {
+  return phrases.some((phrase) => value.includes(phrase))
+}
+
+function isHelpRequest(value: string) {
+  return [
+    'help',
+    'capabilities',
+    'what can you do',
+    'show capabilities',
+  ].includes(value)
+}
+
+function detectMediaAction(value: string): MediaAction | null {
+  const exactControls: Record<string, MediaAction> = {
+    next: 'next',
+    skip: 'next',
+    previous: 'previous',
+    back: 'previous',
+    pause: 'play-pause',
+    resume: 'play-pause',
+    'play pause': 'play-pause',
+    'play-pause': 'play-pause',
+  }
+
+  const exact = exactControls[value]
+  if (exact) return exact
+
+  if (hasAnyPhrase(value, [
+    'next song',
+    'next track',
+    'skip song',
+    'skip track',
+  ])) return 'next'
+
+  if (hasAnyPhrase(value, [
+    'previous song',
+    'previous track',
+    'last song',
+    'back track',
+  ])) return 'previous'
+
+  if (hasAnyPhrase(value, [
+    'pause music',
+    'pause song',
+    'resume music',
+    'resume song',
+  ])) return 'play-pause'
+
+  return null
+}
+
+function rankNativeIntent(value: string): IntentCandidate | null {
+  const wordSet = words(value)
+  const candidates: IntentCandidate[] = []
+
+  const mediaAction = detectMediaAction(value)
+  const mediaTarget = hasAnyWord(wordSet, [
+    'song',
+    'track',
+    'spotify',
+    'media',
+    'music',
+    'audio',
+    'player',
   ])
-}
+  const mediaQuery = hasAnyPhrase(value, [
+    'what is playing',
+    "what's playing",
+    'now playing',
+    'currently playing',
+  ])
 
-function marketIntent(value: string) {
-  return includesAny(value, [
-    'market',
+  if (mediaAction) {
+    candidates.push({ intent: 'media-control', score: 12 })
+  } else if (mediaQuery) {
+    candidates.push({ intent: 'media', score: 11 })
+  } else if (
+    mediaTarget &&
+    hasAnyWord(wordSet, [
+      'playing',
+      'play',
+      'pause',
+      'resume',
+      'next',
+      'previous',
+      'skip',
+    ])
+  ) {
+    candidates.push({ intent: 'media', score: 8 })
+  }
+
+  if (hasAnyWord(wordSet, [
+    'weather',
+    'forecast',
+    'temperature',
+  ])) {
+    candidates.push({ intent: 'weather', score: 10 })
+  } else if (
+    hasAnyWord(wordSet, [
+      'rain',
+      'snow',
+      'precipitation',
+      'humidity',
+      'wind',
+    ]) &&
+    hasAnyWord(wordSet, [
+      'what',
+      'will',
+      'is',
+      'today',
+      'tomorrow',
+      'current',
+      'outside',
+    ])
+  ) {
+    candidates.push({ intent: 'weather', score: 7 })
+  }
+
+  if (hasAnyWord(wordSet, [
     'markets',
-    'stock',
     'stocks',
     'crypto',
     'bitcoin',
@@ -76,110 +195,89 @@ function marketIntent(value: string) {
     'spy',
     'qqq',
     'nvda',
-  ])
-}
+  ])) {
+    candidates.push({ intent: 'markets', score: 10 })
+  } else if (
+    hasAnyWord(wordSet, ['market', 'stock']) &&
+    hasAnyWord(wordSet, [
+      'price',
+      'prices',
+      'watchlist',
+      'today',
+      'current',
+      'show',
+      'check',
+    ])
+  ) {
+    candidates.push({ intent: 'markets', score: 7 })
+  }
 
-function newsIntent(value: string) {
-  return includesAny(value, [
+  if (hasAnyWord(wordSet, [
     'news',
     'headline',
     'headlines',
-    'local news',
-    'ai news',
-    'tech news',
-  ])
-}
+  ])) {
+    candidates.push({ intent: 'news', score: 10 })
+  }
 
-function githubIntent(value: string) {
-  return includesAny(value, [
-    'github',
-    'git ',
-    'repo',
-    'repository',
-    'commit',
-    'branch',
-    'ci ',
-  ])
-}
+  if (
+    hasAnyWord(wordSet, [
+      'github',
+      'repo',
+      'repository',
+    ]) ||
+    value === 'git' ||
+    value.startsWith('git ')
+  ) {
+    candidates.push({ intent: 'github', score: 10 })
+  } else if (
+    hasAnyWord(wordSet, [
+      'commit',
+      'commits',
+      'branch',
+      'ci',
+    ]) &&
+    hasAnyWord(wordSet, [
+      'what',
+      'show',
+      'current',
+      'latest',
+      'status',
+      'check',
+    ])
+  ) {
+    candidates.push({ intent: 'github', score: 7 })
+  }
 
-function systemIntent(value: string) {
-  return includesAny(value, [
-    'system',
+  if (hasAnyWord(wordSet, [
     'cpu',
     'memory',
     'disk',
-    'process',
     'uptime',
-    'computer',
-    'machine',
-  ])
-}
-
-function mediaIntent(value: string) {
-  const normalized = value.trim()
-
-  const hasMediaTarget = includesAny(value, [
-    ' playing ',
-    ' song ',
-    ' track ',
-    ' spotify ',
-    ' media ',
-    ' music ',
-    ' audio ',
-    ' player ',
-  ])
-
-  const standaloneControl = [
-    'pause',
-    'resume',
-    'next',
-    'previous',
-    'skip',
-    'play pause',
-    'play-pause',
-  ].includes(normalized)
-
-  return hasMediaTarget || standaloneControl
-}
-
-function detectMediaAction(
-  value: string,
-): MediaAction | null {
-  if (
-    includesAny(value, [
-      'next',
-      'skip',
-      'skip song',
-      'next song',
-      'next track',
+    'process',
+    'processes',
+    'telemetry',
+  ])) {
+    candidates.push({ intent: 'system', score: 10 })
+  } else if (
+    hasAnyWord(wordSet, ['system']) &&
+    hasAnyWord(wordSet, [
+      'status',
+      'health',
+      'performance',
+      'telemetry',
+      'doing',
     ])
   ) {
-    return 'next'
+    candidates.push({ intent: 'system', score: 7 })
   }
 
-  if (
-    includesAny(value, [
-      'previous',
-      'back track',
-      'last song',
-      'previous song',
-    ])
-  ) {
-    return 'previous'
-  }
+  candidates.sort((a, b) => b.score - a.score)
+  const best = candidates[0]
 
-  if (
-    includesAny(value, [
-      'pause',
-      'resume',
-      'play pause',
-      'play-pause',
-    ])
-  ) {
-    return 'play-pause'
-  }
-
-  return null
+  return best && best.score >= NATIVE_INTENT_THRESHOLD
+    ? best
+    : null
 }
 
 function formatUptime(seconds: number) {
@@ -190,8 +288,36 @@ function formatUptime(seconds: number) {
   return `${days}d ${hours}h ${minutes}m`
 }
 
-async function handleWeather(): Promise<AssistantResult> {
+async function handleWeather(
+  value: string,
+): Promise<AssistantResult> {
   const weather = await getWeatherIntelligence()
+  const tomorrowRequested =
+    value.includes('tomorrow') ||
+    value.includes('next day')
+
+  if (tomorrowRequested) {
+    const tomorrow = weather.daily[1]
+
+    return tomorrow
+      ? {
+          intent: 'weather',
+          title: `WEATHER // TOMORROW // ${weather.locationLabel}`,
+          ok: true,
+          lines: [
+            `HIGH ${Math.round(tomorrow.high)}F // LOW ${Math.round(tomorrow.low)}F`,
+            `RAIN ${Math.round(tomorrow.precipitationProbability)}%`,
+            `SUNRISE ${tomorrow.sunrise.slice(-5)} // SUNSET ${tomorrow.sunset.slice(-5)}`,
+          ],
+        }
+      : {
+          intent: 'weather',
+          title: `WEATHER // TOMORROW // ${weather.locationLabel}`,
+          ok: false,
+          lines: ['Tomorrow forecast is unavailable.'],
+        }
+  }
+
   const current = weather.current
   const today = weather.daily[0]
 
@@ -226,17 +352,17 @@ async function handleMarkets(): Promise<AssistantResult> {
 async function handleNews(
   value: string,
 ): Promise<AssistantResult> {
+  const wordSet = words(value)
   const news = await getNewsIntelligence()
 
   const category =
-    value.includes('local')
+    wordSet.has('local') || wordSet.has('portland')
       ? 'LOCAL'
-      : value.includes(' ai ') ||
-          value.startsWith('ai ') ||
-          value.endsWith(' ai') ||
+      : wordSet.has('ai') ||
           value.includes('artificial intelligence')
         ? 'AI'
-        : value.includes('tech')
+        : wordSet.has('tech') ||
+            wordSet.has('technology')
           ? 'TECH'
           : null
 
@@ -365,55 +491,39 @@ function helpResult(): AssistantResult {
 export async function runAssistantQuery(
   input: string,
 ): Promise<AssistantResult> {
-  const value = ` ${normalize(input)} `
+  const value = normalize(input)
 
-  if (!value.trim()) {
+  if (!value || isHelpRequest(value)) {
     return helpResult()
   }
 
   try {
-    if (
-      value.trim() === 'help' ||
-      includesAny(value, [
-        ' what can you do ',
-        ' capabilities ',
-      ])
-    ) {
-      return helpResult()
-    }
+    const candidate = rankNativeIntent(value)
 
-    if (weatherIntent(value)) {
-      return await handleWeather()
-    }
-
-    if (marketIntent(value)) {
-      return await handleMarkets()
-    }
-
-    if (newsIntent(value)) {
-      return await handleNews(value)
-    }
-
-    if (githubIntent(value)) {
-      return await handleGitHub()
-    }
-
-    if (systemIntent(value)) {
-      return await handleSystem()
-    }
-
-    if (mediaIntent(value)) {
-      return await handleMedia(value)
-    }
-
-    return {
-      intent: 'unknown',
-      title: 'ASSISTANT CORE // NO MATCH',
-      ok: false,
-      lines: [
-        'I could not map that request to a local module.',
-        'Try: weather, markets, news, GitHub, system, or media.',
-      ],
+    switch (candidate?.intent) {
+      case 'weather':
+        return await handleWeather(value)
+      case 'markets':
+        return await handleMarkets()
+      case 'news':
+        return await handleNews(value)
+      case 'github':
+        return await handleGitHub()
+      case 'system':
+        return await handleSystem()
+      case 'media':
+      case 'media-control':
+        return await handleMedia(value)
+      default:
+        return {
+          intent: 'unknown',
+          title: 'ASSISTANT CORE // NO MATCH',
+          ok: false,
+          lines: [
+            'No high-confidence local intent matched this request.',
+            'Passing unmatched conversation to the configured model layer.',
+          ],
+        }
     }
   } catch (error) {
     return {
