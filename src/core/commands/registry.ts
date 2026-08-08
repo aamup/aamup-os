@@ -1,4 +1,8 @@
 import {
+  listConversationSummaries,
+  listConversationTurns,
+} from '../../modules/conversation/client'
+import {
   formatDailyBriefingLines,
   getDailyBriefing,
 } from '../../modules/briefing/client'
@@ -42,7 +46,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | brief | memory | recall | embedding | remember | forget | ask | model | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | brief | memory | recall | history | embedding | remember | forget | ask | model | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -400,6 +404,58 @@ export const commandDefinitions: CommandDefinition[] = [
           'DAILY INTELLIGENCE // v0.5',
           ...formatDailyBriefingLines(briefing),
         ],
+      }
+    },
+  },
+  {
+    name: 'history',
+    aliases: ['conversation'],
+    description: 'Inspect persisted local conversation history and summaries.',
+    usage: 'history [recent|summaries]',
+    execute: async (args) => {
+      const mode = args[0]?.toLowerCase() ?? 'recent'
+
+      if (mode === 'summaries') {
+        const summaries =
+          await listConversationSummaries(8)
+
+        return {
+          ok: true,
+          output: summaries.length
+            ? [
+                `CONVERSATION SUMMARIES :: ${summaries.length}`,
+                ...summaries.map(
+                  (summary) =>
+                    `#${summary.id} // TURNS ${summary.turnCount} // ${summary.summary}`,
+                ),
+              ]
+            : ['CONVERSATION SUMMARIES :: NONE'],
+        }
+      }
+
+      if (mode !== 'recent') {
+        return {
+          ok: false,
+          output: ['USAGE :: history [recent|summaries]'],
+        }
+      }
+
+      const turns = await listConversationTurns(
+        null,
+        12,
+      )
+
+      return {
+        ok: true,
+        output: turns.length
+          ? [
+              `CONVERSATION HISTORY :: ${turns.length} RECENT TURNS`,
+              ...turns.map(
+                (turn) =>
+                  `${turn.role.toUpperCase()} // ${turn.intent?.toUpperCase() ?? 'NONE'} // ${turn.content.replace(/\s+/g, ' ').slice(0, 180)}`,
+              ),
+            ]
+          : ['CONVERSATION HISTORY :: NONE'],
       }
     },
   },

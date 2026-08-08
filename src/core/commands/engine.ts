@@ -31,6 +31,13 @@ export async function executeCommand(
     if (command.name === 'remember') return true
     if (command.name === 'memory') return true
     if (command.name === 'recall') return true
+    if (command.name === 'history') {
+      return normalized.length === 1 && [
+        'recent',
+        'summaries',
+      ].includes(normalized[0])
+    }
+
     if (command.name === 'brief') {
       return (
         normalized.length === 1 &&

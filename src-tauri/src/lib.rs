@@ -1,5 +1,6 @@
 mod assistant_embedding;
 mod assistant_model;
+mod conversation;
 mod github_remote;
 mod markets;
 mod media;
@@ -9,6 +10,10 @@ mod weather;
 
 use assistant_embedding::{embed_texts, get_embedding_status};
 use assistant_model::{get_assistant_model_status, query_assistant_model};
+use conversation::{
+    list_conversation_summaries, list_conversation_turns, record_conversation_turn,
+    save_conversation_summary,
+};
 use github_remote::get_github_remote_state;
 use markets::get_markets_intelligence;
 use media::{get_media_session, media_control};
@@ -215,6 +220,10 @@ pub fn run() {
             query_assistant_model,
             get_embedding_status,
             embed_texts,
+            record_conversation_turn,
+            list_conversation_turns,
+            save_conversation_summary,
+            list_conversation_summaries,
             remember_memory,
             list_memories,
             search_memories,

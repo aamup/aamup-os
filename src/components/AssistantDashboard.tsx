@@ -6,6 +6,7 @@ import {
 } from 'react'
 import {
   createAssistantContext,
+  finalizeAssistantSession,
   runAssistantSessionQuery,
   type AssistantContext,
   type AssistantSessionResult,
@@ -127,10 +128,21 @@ export function AssistantDashboard() {
     }
   }
 
-  const clearSession = () => {
-    setEntries([])
-    setContext(createAssistantContext())
-    window.localStorage.removeItem(STORAGE_KEY)
+  const clearSession = async () => {
+    if (running) return
+
+    setRunning(true)
+
+    try {
+      await finalizeAssistantSession(context)
+        .catch(() => context)
+
+      setEntries([])
+      setContext(createAssistantContext())
+      window.localStorage.removeItem(STORAGE_KEY)
+    } finally {
+      setRunning(false)
+    }
   }
 
   const onSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -145,7 +157,7 @@ export function AssistantDashboard() {
       <header className="assistant-dashboard__header">
         <div>
           <span className="assistant-eyebrow">
-            ASSISTANT CORE / CONTEXT ROUTER v0.2
+            ASSISTANT CORE / CONVERSATION MEMORY v0.8
           </span>
           <h1>COMMAND INTELLIGENCE</h1>
           <p>NATURAL LANGUAGE → CONTEXT → LIVE AAMUP MODULES</p>
@@ -156,7 +168,7 @@ export function AssistantDashboard() {
             <i />
             {modelLabel}
           </div>
-          <button className="assistant-clear" type="button" onClick={clearSession}>
+          <button className="assistant-clear" type="button" onClick={() => void clearSession()}>
             CLEAR SESSION
           </button>
         </div>
@@ -261,7 +273,7 @@ export function AssistantDashboard() {
 
       <footer className="assistant-dashboard__footer">
         <span>ENGINE // CONTEXTUAL LOCAL INTENT ROUTER</span>
-        <span>PERSISTENT SESSION // LOCAL TOOLS FIRST // OPTIONAL MODEL FALLBACK</span>
+        <span>PERSISTENT HISTORY // SESSION SUMMARIES // LOCAL TOOLS FIRST</span>
       </footer>
     </main>
   )
