@@ -15,6 +15,7 @@ export type AssistantModule =
   | 'markets'
   | 'news'
   | 'music'
+  | 'memory'
   | 'assistant'
 
 export type NewsCategory = 'LOCAL' | 'AI' | 'TECH'
@@ -97,6 +98,7 @@ function detectNavigation(
   if (value.includes('news')) return 'news'
   if (value.includes('github') || value.includes('repo')) return 'github'
   if (value.includes('audio') || value.includes('music') || value.includes('visualizer')) return 'music'
+  if (value.includes('memory')) return 'memory'
   if (value.includes('assistant')) return 'assistant'
   if (value.includes(' it ') || value.includes(' that ')) return context.lastModule
 

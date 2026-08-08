@@ -28,6 +28,15 @@ export async function executeCommand(
     const normalized = values.map((value) => value.toLowerCase())
 
     if (command.name === 'ask') return true
+    if (command.name === 'remember') return true
+    if (command.name === 'memory') return true
+
+    if (command.name === 'forget') {
+      return (
+        normalized.length === 1 &&
+        /^\d+$/.test(normalized[0])
+      )
+    }
 
     if (command.name === 'github') {
       return normalized.length === 1 && [

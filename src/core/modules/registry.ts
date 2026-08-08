@@ -44,6 +44,13 @@ export const modules: AamupModule[] = [
     description: 'Local real-time FFT spectrum and waveform analysis.',
   },
   {
+    id: 'memory',
+    label: 'Memory Core',
+    shortLabel: 'MEMORY',
+    state: 'online',
+    description: 'Persistent local SQLite memory for facts, preferences, and decisions.',
+  },
+  {
     id: 'assistant',
     label: 'Assistant Core',
     shortLabel: 'ASSIST',

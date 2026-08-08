@@ -2,6 +2,7 @@ mod assistant_model;
 mod github_remote;
 mod markets;
 mod media;
+mod memory;
 mod news;
 mod weather;
 
@@ -9,6 +10,7 @@ use assistant_model::{get_assistant_model_status, query_assistant_model};
 use github_remote::get_github_remote_state;
 use markets::get_markets_intelligence;
 use media::{get_media_session, media_control};
+use memory::{forget_memory, list_memories, remember_memory, search_memories};
 use news::get_news_intelligence;
 use std::{
     path::Path,
@@ -208,7 +210,11 @@ pub fn run() {
             get_media_session,
             media_control,
             get_assistant_model_status,
-            query_assistant_model
+            query_assistant_model,
+            remember_memory,
+            list_memories,
+            search_memories,
+            forget_memory
         ])
         .run(tauri::generate_context!())
         .expect("error while running AAMUP OS");

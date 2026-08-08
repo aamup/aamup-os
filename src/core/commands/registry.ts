@@ -1,3 +1,9 @@
+import {
+  forgetMemory,
+  listMemories,
+  rememberMemory,
+  searchMemories,
+} from '../../modules/memory/client'
 import { getAssistantModelStatus } from '../../modules/assistant/model'
 import { runAssistantSessionQuery } from '../../modules/assistant/session'
 import { getMediaSession, mediaControl } from '../../modules/audio/media'
@@ -25,7 +31,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | ask | model | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | memory | remember | forget | ask | model | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -359,6 +365,86 @@ export const commandDefinitions: CommandDefinition[] = [
           `TRACK :: ${session.title || 'UNKNOWN'}`,
           `ARTIST :: ${session.artist || 'UNKNOWN'}`,
           `ALBUM :: ${session.album || 'UNKNOWN'}`,
+        ],
+      }
+    },
+  },
+  {
+    name: 'remember',
+    description: 'Store a persistent local memory.',
+    usage: 'remember <text>',
+    execute: async (args) => {
+      const content = args.join(' ').trim()
+
+      if (!content) {
+        return {
+          ok: false,
+          output: ['USAGE :: remember <text>'],
+        }
+      }
+
+      const entry = await rememberMemory(content)
+
+      return {
+        ok: true,
+        output: [
+          `MEMORY // SAVED #${entry.id}`,
+          entry.content,
+        ],
+      }
+    },
+  },
+  {
+    name: 'memory',
+    aliases: ['memories'],
+    description: 'List or search persistent local memory.',
+    usage: 'memory [search text]',
+    execute: async (args) => {
+      const query = args.join(' ').trim()
+      const entries = query
+        ? await searchMemories(query, 20)
+        : await listMemories(20)
+
+      return {
+        ok: true,
+        output: entries.length
+          ? [
+              `MEMORY // ${entries.length} RECORDS`,
+              ...entries.map(
+                (entry) =>
+                  `#${entry.id} [${entry.category.toUpperCase()}] ${entry.content}`,
+              ),
+            ]
+          : ['MEMORY // NO RECORDS'],
+      }
+    },
+  },
+  {
+    name: 'forget',
+    description: 'Delete a persistent memory by id.',
+    usage: 'forget <id>',
+    execute: async (args) => {
+      const id = Number(args[0])
+
+      if (
+        args.length !== 1 ||
+        !Number.isInteger(id) ||
+        id <= 0
+      ) {
+        return {
+          ok: false,
+          output: ['USAGE :: forget <id>'],
+        }
+      }
+
+      const deleted = await forgetMemory(id)
+
+      return {
+        ok: deleted,
+        output: [
+          deleted
+            ? `MEMORY // FORGOT #${id}`
+            : `MEMORY // #${id} NOT FOUND`,
         ],
       }
     },
