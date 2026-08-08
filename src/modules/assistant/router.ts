@@ -116,19 +116,30 @@ function systemIntent(value: string) {
 }
 
 function mediaIntent(value: string) {
-  return includesAny(value, [
-    'playing',
-    'song',
-    'track',
-    'spotify',
-    'media',
-    'music',
+  const normalized = value.trim()
+
+  const hasMediaTarget = includesAny(value, [
+    ' playing ',
+    ' song ',
+    ' track ',
+    ' spotify ',
+    ' media ',
+    ' music ',
+    ' audio ',
+    ' player ',
+  ])
+
+  const standaloneControl = [
     'pause',
     'resume',
     'next',
     'previous',
     'skip',
-  ])
+    'play pause',
+    'play-pause',
+  ].includes(normalized)
+
+  return hasMediaTarget || standaloneControl
 }
 
 function detectMediaAction(
