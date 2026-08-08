@@ -250,6 +250,19 @@ check() {
   ok "Fast check passed"
 }
 
+test_suite() {
+  load_env
+  echo
+  bold "AAMUP // TEST"
+  npm run typecheck || return 1
+  (
+    cd src-tauri
+    cargo test --lib
+  ) || return 1
+  echo
+  ok "Automated tests passed"
+}
+
 verify() {
   load_env
   echo
@@ -262,11 +275,23 @@ verify() {
     cd src-tauri
     cargo fmt -- --check
     cargo check
+    cargo test --lib
     cargo clippy --all-targets --all-features -- -D warnings
   ) || return 1
 
   echo
   ok "Full verification passed"
+}
+
+package_app() {
+  load_env
+  echo
+  bold "AAMUP // PACKAGE"
+  npm run tauri build -- --bundles appimage,deb || return 1
+  echo
+  ok "Linux bundles created"
+  find src-tauri/target/release/bundle -maxdepth 3 -type f \
+    \( -name '*.AppImage' -o -name '*.deb' \) -print 2>/dev/null || true
 }
 
 dev() {
@@ -415,7 +440,9 @@ Usage:
   ./aamup doctor
   ./aamup dev
   ./aamup check
+  ./aamup test
   ./aamup verify
+  ./aamup package
   ./aamup ship "commit message"
   ./aamup sync
   ./aamup status
@@ -425,7 +452,9 @@ Commands:
   doctor  Check repo, toolchain, config, Ollama, chat, and embeddings.
   dev     Load persistent config and launch Tauri development mode.
   check   Fast inner-loop validation: TypeScript + cargo check.
-  verify  Full pre-push validation including build, fmt, and clippy.
+  test    Typecheck + Rust automated regression tests.
+  verify  Full validation including build, fmt, tests, and clippy.
+  package Build Linux AppImage and DEB bundles.
   ship    Verify, secret-guard, commit all project changes, and push.
   sync    Fast-forward the current branch from origin.
   status  Show concise project/model configuration state.
@@ -449,9 +478,17 @@ case "${1:-help}" in
     shift
     check "$@"
     ;;
+  test)
+    shift
+    test_suite "$@"
+    ;;
   verify)
     shift
     verify "$@"
+    ;;
+  package)
+    shift
+    package_app "$@"
     ;;
   ship)
     shift

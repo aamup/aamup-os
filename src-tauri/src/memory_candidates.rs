@@ -121,6 +121,140 @@ fn validate_category(value: &str) -> Result<String, String> {
     }
 }
 
+
+fn contains_any(value: &str, terms: &[&str]) -> bool {
+    terms.iter().any(|term| value.contains(term))
+}
+
+fn normalized_candidate_text(value: &str) -> String {
+    value
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_lowercase()
+}
+
+fn contains_sensitive_material(value: &str) -> bool {
+    contains_any(
+        value,
+        &[
+            "password is",
+            "password:",
+            "passcode is",
+            "passcode:",
+            "api key is",
+            "api key:",
+            "api_key=",
+            "access token is",
+            "access token:",
+            "refresh token is",
+            "refresh token:",
+            "private key",
+            "bearer ",
+            "ssn",
+            "social security number",
+            "credit card number",
+            "bank account number",
+            "routing number",
+            "diagnosed with",
+            "medical diagnosis",
+            "case number",
+            "court case number",
+        ],
+    )
+}
+
+fn is_transient_activity(value: &str) -> bool {
+    contains_any(
+        value,
+        &[
+            "user asked",
+            "user requested",
+            "user queried",
+            "user checked",
+            "user searched",
+            "user looked up",
+            "user wanted to know",
+            "user viewed",
+            "user opened",
+            "user ran",
+            "user executed",
+            "user received",
+            "user was shown",
+            "user requested information",
+        ],
+    )
+}
+
+fn has_durable_marker(value: &str) -> bool {
+    contains_any(
+        value,
+        &[
+            "prefers",
+            "preference",
+            "always",
+            "goal",
+            "plans to",
+            "aims to",
+            "wants to",
+            "must",
+            "cannot",
+            "should not",
+            "avoid",
+            "requires",
+            "requirement",
+            "constraint",
+            "decided",
+            "decision",
+            "chose",
+            "chosen",
+            "will use",
+            "uses ",
+            "visual identity",
+            "architecture",
+            "works as",
+            "is a ",
+            "is an ",
+            "local-first",
+            "default to",
+            "standardize",
+        ],
+    )
+}
+
+fn passes_category_semantics(category: &str, value: &str) -> bool {
+    match category {
+        "preference" => contains_any(
+            value,
+            &["prefers", "preference", "likes", "always", "default to", "wants aamup", "wants the"],
+        ),
+        "goal" => contains_any(value, &["goal", "plans to", "aims to", "wants to", "working toward"]),
+        "constraint" => contains_any(
+            value,
+            &["must", "cannot", "should not", "avoid", "requires", "requirement", "constraint", "only"],
+        ),
+        "decision" => contains_any(
+            value,
+            &["decided", "decision", "chose", "chosen", "will use", "uses ", "should ", "standardize", "architecture", "visual identity"],
+        ),
+        "identity" => value.starts_with("user is ") || value.starts_with("user works ") || value.contains("works as"),
+        "project" => {
+            (value.starts_with("aamup") || value.starts_with("the project") || value.contains("aamup os"))
+                && has_durable_marker(value)
+        }
+        "general" => has_durable_marker(value),
+        _ => false,
+    }
+}
+
+fn is_durable_candidate(category: &str, content: &str) -> bool {
+    let value = normalized_candidate_text(content);
+
+    !contains_sensitive_material(&value)
+        && !is_transient_activity(&value)
+        && passes_category_semantics(category, &value)
+}
+
 fn row_to_candidate(row: &rusqlite::Row<'_>) -> rusqlite::Result<MemoryCandidate> {
     Ok(MemoryCandidate {
         id: row.get(0)?,
@@ -183,6 +317,11 @@ pub fn create_memory_candidate(
 
     if session_id.is_empty() || session_id.len() > 128 {
         return Err("invalid memory candidate session id".to_string());
+    }
+
+
+    if !is_durable_candidate(&category, &content) {
+        return Ok(None);
     }
 
     let content_key = normalize_content_key(&content);
@@ -434,3 +573,79 @@ pub fn review_memory_candidate(
         promoted,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::is_durable_candidate;
+
+    #[test]
+    fn rejects_transient_activity() {
+        let cases = [
+            ("decision", "User asked for weather forecast for Portland Metro area"),
+            ("preference", "User requested information about weather conditions over multiple days"),
+            ("general", "User checked the latest AI news"),
+            ("general", "User searched current NVDA price"),
+            ("project", "User opened GitHub repository status"),
+            ("general", "User ran the history command"),
+            ("general", "User queried the current weather"),
+            ("preference", "User asked to see Bitcoin prices"),
+            ("decision", "User requested a daily briefing"),
+            ("project", "User checked system telemetry"),
+        ];
+
+        for (category, content) in cases {
+            assert!(!is_durable_candidate(category, content), "transient activity should be rejected: {content}");
+        }
+    }
+
+    #[test]
+    fn accepts_durable_memory() {
+        let cases = [
+            ("preference", "User prefers local-first features whenever possible"),
+            ("constraint", "AAMUP OS should avoid cloud dependencies unless necessary"),
+            ("goal", "User's goal is to make AAMUP OS a native personal intelligence desktop app"),
+            ("decision", "AAMUP OS uses black, white, and restrained red as its visual identity"),
+            ("identity", "User works as a substance use disorder counselor"),
+            ("preference", "User wants AAMUP OS to always use compact typography"),
+            ("project", "AAMUP OS uses a local-first architecture"),
+            ("general", "User is a software developer"),
+            ("constraint", "AAMUP OS must not store passwords"),
+            ("decision", "AAMUP OS will use SQLite for persistent local memory"),
+            ("goal", "User plans to add voice control after v1.0"),
+            ("preference", "User likes concise terminal output"),
+        ];
+
+        for (category, content) in cases {
+            assert!(is_durable_candidate(category, content), "durable memory should be accepted: {content}");
+        }
+    }
+
+    #[test]
+    fn rejects_sensitive_material() {
+        let cases = [
+            ("identity", "User is diagnosed with bipolar disorder"),
+            ("general", "User's API key is abc123"),
+            ("general", "User's password: hunter2"),
+            ("general", "User's bank account number is 123456"),
+            ("identity", "User's court case number is 22CR1234"),
+        ];
+
+        for (category, content) in cases {
+            assert!(!is_durable_candidate(category, content), "sensitive material should be rejected: {content}");
+        }
+    }
+
+    #[test]
+    fn rejects_content_without_durable_semantics() {
+        let cases = [
+            ("general", "No durable facts were discussed"),
+            ("preference", "Weather information was requested multiple times"),
+            ("project", "The weather was cloudy today"),
+        ];
+
+        for (category, content) in cases {
+            assert!(!is_durable_candidate(category, content), "non-durable content should be rejected: {content}");
+        }
+    }
+}
+

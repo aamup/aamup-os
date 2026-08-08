@@ -650,6 +650,7 @@ export const commandDefinitions: CommandDefinition[] = [
           output: [
             `MEMORY SCAN :: SUMMARY #${latest.id}`,
             `PARSED :: ${extraction.parsed.length}`,
+            `FILTERED/INVALID :: ${extraction.filtered}`,
             `QUEUED :: ${extraction.queued.length}`,
             extraction.parsed.length
               ? `MODEL OUTPUT :: ${extraction.parsed.length} ACCEPTED CANDIDATE LINE(S)`
