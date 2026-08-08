@@ -508,6 +508,7 @@ function helpResult(): AssistantResult {
     title: 'ASSISTANT CORE // CAPABILITIES',
     ok: true,
     lines: [
+      'Relevant saved memories are automatically supplied to model conversations.',
       'Ask for a grounded daily brief across all live modules.',
       'Ask about weather, forecasts, rain, or temperature.',
       'Ask for markets, stocks, crypto, or watchlist status.',

@@ -1,3 +1,7 @@
+import {
+  formatMemoryContext,
+  recallRelevantMemories,
+} from '../memory/retrieval'
 import { getWeatherIntelligence } from '../weather/client'
 import {
   getAssistantModelStatus,
@@ -318,14 +322,21 @@ export async function runAssistantSessionQuery(
 
     if (modelStatus?.configured) {
       try {
+        const recalledMemories =
+          await recallRelevantMemories(input, 5)
+            .catch(() => [])
+
         const model = await queryAssistantModel(
           input,
           [
+            'SESSION CONTEXT:',
             `lastIntent=${context.lastIntent ?? 'none'}`,
             `lastModule=${context.lastModule ?? 'none'}`,
             `lastNewsCategory=${context.lastNewsCategory ?? 'none'}`,
             `turnCount=${context.turnCount}`,
-          ].join('; '),
+            '',
+            formatMemoryContext(recalledMemories),
+          ].join('\n'),
         )
 
         result = {

@@ -30,6 +30,7 @@ export async function executeCommand(
     if (command.name === 'ask') return true
     if (command.name === 'remember') return true
     if (command.name === 'memory') return true
+    if (command.name === 'recall') return true
     if (command.name === 'brief') {
       return (
         normalized.length === 1 &&

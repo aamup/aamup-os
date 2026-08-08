@@ -3,6 +3,9 @@ import {
   getDailyBriefing,
 } from '../../modules/briefing/client'
 import {
+  recallRelevantMemories,
+} from '../../modules/memory/retrieval'
+import {
   forgetMemory,
   listMemories,
   rememberMemory,
@@ -35,7 +38,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | brief | memory | remember | forget | ask | model | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | brief | memory | recall | remember | forget | ask | model | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -393,6 +396,39 @@ export const commandDefinitions: CommandDefinition[] = [
           'DAILY INTELLIGENCE // v0.5',
           ...formatDailyBriefingLines(briefing),
         ],
+      }
+    },
+  },
+  {
+    name: 'recall',
+    description: 'Preview memories relevant to a model query.',
+    usage: 'recall <query>',
+    execute: async (args) => {
+      const query = args.join(' ').trim()
+
+      if (!query) {
+        return {
+          ok: false,
+          output: ['USAGE :: recall <query>'],
+        }
+      }
+
+      const entries =
+        await recallRelevantMemories(query, 5)
+
+      return {
+        ok: true,
+        output: entries.length
+          ? [
+              `RECALL // ${entries.length} RELEVANT MEMORIES`,
+              ...entries.map(
+                (entry) =>
+                  `#${entry.id} SCORE ${entry.score} // ${entry.content}`,
+              ),
+            ]
+          : [
+              'RECALL // NO RELEVANT MEMORY',
+            ],
       }
     },
   },
