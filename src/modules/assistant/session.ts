@@ -12,6 +12,9 @@ import {
   formatMemoryContext,
   recallRelevantMemories,
 } from '../memory/retrieval'
+import {
+  queueMemoryCandidatesFromSummary,
+} from '../memory/promotion'
 import { getWeatherIntelligence } from '../weather/client'
 import {
   getAssistantModelStatus,
@@ -356,6 +359,11 @@ async function summarizeSession(
     summary.content,
     context.turnCount,
   )
+
+  await queueMemoryCandidatesFromSummary(
+    summary.content,
+    context.sessionId,
+  ).catch(() => [])
 
   return {
     ...context,

@@ -5,6 +5,7 @@ mod github_remote;
 mod markets;
 mod media;
 mod memory;
+mod memory_candidates;
 mod news;
 mod weather;
 
@@ -18,6 +19,9 @@ use github_remote::get_github_remote_state;
 use markets::get_markets_intelligence;
 use media::{get_media_session, media_control};
 use memory::{forget_memory, list_memories, remember_memory, search_memories};
+use memory_candidates::{
+    create_memory_candidate, list_memory_candidates, review_memory_candidate,
+};
 use news::get_news_intelligence;
 use std::{
     path::Path,
@@ -227,7 +231,10 @@ pub fn run() {
             remember_memory,
             list_memories,
             search_memories,
-            forget_memory
+            forget_memory,
+            create_memory_candidate,
+            list_memory_candidates,
+            review_memory_candidate
         ])
         .run(tauri::generate_context!())
         .expect("error while running AAMUP OS");

@@ -16,7 +16,9 @@ import {
 import {
   forgetMemory,
   listMemories,
+  listMemoryCandidates,
   rememberMemory,
+  reviewMemoryCandidate,
   searchMemories,
 } from '../../modules/memory/client'
 import { getAssistantModelStatus } from '../../modules/assistant/model'
@@ -48,6 +50,7 @@ export const commandDefinitions: CommandDefinition[] = [
       output: [
         'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | brief | memory | recall | history | embedding | remember | forget | ask | model | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
+        'TIP :: memory candidates | memory approve <id> | memory reject <id>',
       ],
     }),
   },
@@ -580,8 +583,79 @@ export const commandDefinitions: CommandDefinition[] = [
     name: 'memory',
     aliases: ['memories'],
     description: 'List or search persistent local memory.',
-    usage: 'memory [search text]',
+    usage: 'memory [search text|candidates|approve <id>|reject <id>|promote <id>]',
     execute: async (args) => {
+      const mode = args[0]?.toLowerCase()
+
+      if (mode === 'candidates') {
+        if (args.length !== 1) {
+          return {
+            ok: false,
+            output: ['USAGE :: memory candidates'],
+          }
+        }
+
+        const candidates =
+          await listMemoryCandidates('pending', 50)
+
+        return {
+          ok: true,
+          output: candidates.length
+            ? [
+                `MEMORY CANDIDATES :: ${candidates.length} PENDING`,
+                ...candidates.map(
+                  (candidate) =>
+                    `#${candidate.id} // ${Math.round(candidate.confidence * 100)}% // ${candidate.category.toUpperCase()} // ${candidate.content}`,
+                ),
+                'REVIEW :: memory approve <id> | memory reject <id>',
+              ]
+            : ['MEMORY CANDIDATES :: NONE PENDING'],
+        }
+      }
+
+      if (
+        mode === 'approve' ||
+        mode === 'promote' ||
+        mode === 'reject'
+      ) {
+        if (
+          args.length !== 2 ||
+          !/^\d+$/.test(args[1])
+        ) {
+          return {
+            ok: false,
+            output: [
+              'USAGE :: memory approve <id> | memory reject <id> | memory promote <id>',
+            ],
+          }
+        }
+
+        const id = Number(args[1])
+        const decision =
+          mode === 'reject'
+            ? 'reject'
+            : 'approve'
+
+        const review = await reviewMemoryCandidate(
+          id,
+          decision,
+        )
+
+        return {
+          ok: true,
+          output: decision === 'approve'
+            ? [
+                `MEMORY CANDIDATE #${id} :: APPROVED`,
+                `MEMORY ID :: ${review.memoryId ?? 'EXISTING'}`,
+                review.candidate.content,
+              ]
+            : [
+                `MEMORY CANDIDATE #${id} :: REJECTED`,
+                review.candidate.content,
+              ],
+        }
+      }
+
       const query = args.join(' ').trim()
       const entries = query
         ? await searchMemories(query, 20)

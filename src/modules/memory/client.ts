@@ -41,3 +41,70 @@ export function forgetMemory(id: number) {
     id,
   })
 }
+
+export type MemoryCandidateStatus =
+  | 'pending'
+  | 'approved'
+  | 'rejected'
+
+export interface MemoryCandidate {
+  id: number
+  content: string
+  category: string
+  confidence: number
+  sourceSessionId: string
+  status: MemoryCandidateStatus
+  createdAt: string
+  reviewedAt: string | null
+}
+
+export interface MemoryReviewResult {
+  candidate: MemoryCandidate
+  memoryId: number | null
+  promoted: boolean
+}
+
+export function createMemoryCandidate(
+  content: string,
+  category: string,
+  confidence: number,
+  sourceSessionId: string,
+) {
+  return invoke<MemoryCandidate | null>(
+    'create_memory_candidate',
+    {
+      request: {
+        content,
+        category,
+        confidence,
+        sourceSessionId,
+      },
+    },
+  )
+}
+
+export function listMemoryCandidates(
+  status: MemoryCandidateStatus | 'all' = 'pending',
+  limit = 50,
+) {
+  return invoke<MemoryCandidate[]>(
+    'list_memory_candidates',
+    {
+      status,
+      limit,
+    },
+  )
+}
+
+export function reviewMemoryCandidate(
+  id: number,
+  decision: 'approve' | 'reject',
+) {
+  return invoke<MemoryReviewResult>(
+    'review_memory_candidate',
+    {
+      id,
+      decision,
+    },
+  )
+}
