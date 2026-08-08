@@ -1,3 +1,4 @@
+import { getAssistantModelStatus } from '../../modules/assistant/model'
 import { runAssistantSessionQuery } from '../../modules/assistant/session'
 import { getMediaSession, mediaControl } from '../../modules/audio/media'
 import { getNewsIntelligence } from '../../modules/news/client'
@@ -24,7 +25,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | ask | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | ask | model | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -393,6 +394,30 @@ export const commandDefinitions: CommandDefinition[] = [
           result.title,
           ...result.lines,
         ],
+      }
+    },
+  },
+  {
+    name: 'model',
+    aliases: ['llm'],
+    description: 'Inspect the optional Assistant model provider.',
+    execute: async () => {
+      const status = await getAssistantModelStatus()
+
+      return {
+        ok: true,
+        output: status.configured
+          ? [
+              `MODEL :: ${status.model}`,
+              `PROVIDER :: ${status.provider}`,
+              `ENDPOINT :: ${status.baseUrl}`,
+              `AUTH :: ${status.hasApiKey ? 'CONFIGURED' : 'NONE'}`,
+            ]
+          : [
+              'MODEL :: NOT CONFIGURED',
+              'SET AAMUP_LLM_BASE_URL AND AAMUP_LLM_MODEL',
+              'LOCAL ROUTER :: ONLINE',
+            ],
       }
     },
   },

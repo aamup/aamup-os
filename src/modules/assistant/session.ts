@@ -1,5 +1,9 @@
 import { getWeatherIntelligence } from '../weather/client'
 import {
+  getAssistantModelStatus,
+  queryAssistantModel,
+} from './model'
+import {
   runAssistantQuery,
   type AssistantIntent,
   type AssistantResult,
@@ -303,16 +307,54 @@ export async function runAssistantSessionQuery(
   const base = await runAssistantQuery(routedInput)
 
   let result = base
+
   if (base.intent === 'unknown') {
-    result = {
-      ...base,
-      title: 'ASSISTANT CORE // NEEDS A TARGET',
-      lines: [
-        context.lastIntent
-          ? `I retained ${context.lastIntent.toUpperCase()} context but could not map that request safely.`
-          : 'I could not map that request to a local module.',
-        'Try weather, markets, news, GitHub, system, media, or "open <module>".',
-      ],
+    const modelStatus = await getAssistantModelStatus()
+      .catch(() => null)
+
+    if (modelStatus?.configured) {
+      try {
+        const model = await queryAssistantModel(
+          input,
+          [
+            `lastIntent=${context.lastIntent ?? 'none'}`,
+            `lastModule=${context.lastModule ?? 'none'}`,
+            `lastNewsCategory=${context.lastNewsCategory ?? 'none'}`,
+            `turnCount=${context.turnCount}`,
+          ].join('; '),
+        )
+
+        result = {
+          intent: 'model',
+          title: `MODEL // ${model.model}`,
+          ok: true,
+          lines: [model.content],
+        }
+      } catch (error) {
+        result = {
+          ...base,
+          title: 'ASSISTANT CORE // MODEL ERROR',
+          ok: false,
+          lines: [
+            error instanceof Error
+              ? error.message
+              : String(error),
+            'Local AAMUP tools remain available.',
+          ],
+        }
+      }
+    } else {
+      result = {
+        ...base,
+        title: 'ASSISTANT CORE // NEEDS A TARGET',
+        lines: [
+          context.lastIntent
+            ? `I retained ${context.lastIntent.toUpperCase()} context but could not map that request safely.`
+            : 'I could not map that request to a local module.',
+          'Try weather, markets, news, GitHub, system, media, or "open <module>".',
+          'MODEL PROVIDER // NOT CONFIGURED',
+        ],
+      }
     }
   }
 

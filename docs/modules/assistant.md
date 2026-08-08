@@ -228,3 +228,45 @@ clear context
 reset context
 forget context
 ```
+
+## v0.3 — Hybrid model adapter
+
+Assistant Core v0.3 adds an optional model fallback while keeping deterministic AAMUP tools first.
+
+Routing order:
+
+```text
+User input
+  ↓
+Explicit command
+  ↓
+Assistant session/context layer
+  ↓
+Deterministic AAMUP module router
+  ↓
+Optional model fallback only for unmatched conversation
+```
+
+Configuration:
+
+```bash
+export AAMUP_LLM_BASE_URL="http://127.0.0.1:11434/v1"
+export AAMUP_LLM_MODEL="<your-model-name>"
+```
+
+If the endpoint requires authentication:
+
+```bash
+export AAMUP_LLM_API_KEY="<your-key>"
+```
+
+Then launch AAMUP OS from the same shell.
+
+Commands:
+
+```text
+model
+llm
+```
+
+When no model is configured, all existing deterministic local routing continues to work.

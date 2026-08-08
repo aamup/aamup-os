@@ -19,6 +19,7 @@ export type AssistantIntent =
   | 'system'
   | 'media'
   | 'media-control'
+  | 'model'
   | 'unknown'
 
 export interface AssistantResult {

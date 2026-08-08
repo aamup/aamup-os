@@ -1,9 +1,11 @@
+mod assistant_model;
 mod github_remote;
 mod markets;
 mod media;
 mod news;
 mod weather;
 
+use assistant_model::{get_assistant_model_status, query_assistant_model};
 use github_remote::get_github_remote_state;
 use markets::get_markets_intelligence;
 use media::{get_media_session, media_control};
@@ -204,7 +206,9 @@ pub fn run() {
             get_markets_intelligence,
             get_news_intelligence,
             get_media_session,
-            media_control
+            media_control,
+            get_assistant_model_status,
+            query_assistant_model
         ])
         .run(tauri::generate_context!())
         .expect("error while running AAMUP OS");

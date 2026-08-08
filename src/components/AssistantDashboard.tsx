@@ -10,6 +10,7 @@ import {
   type AssistantContext,
   type AssistantSessionResult,
 } from '../modules/assistant/session'
+import { getAssistantModelStatus } from '../modules/assistant/model'
 import '../styles/assistant-dashboard.css'
 
 interface AssistantEntry {
@@ -57,8 +58,34 @@ export function AssistantDashboard() {
   const [entries, setEntries] = useState<AssistantEntry[]>(initial.entries)
   const [context, setContext] = useState<AssistantContext>(initial.context)
   const [running, setRunning] = useState(false)
+  const [modelLabel, setModelLabel] = useState('MODEL CHECKING')
 
   const latest = entries[0]
+
+  useEffect(() => {
+    let active = true
+
+    void getAssistantModelStatus()
+      .then((status) => {
+        if (!active) return
+
+        setModelLabel(
+          status.configured
+            ? `MODEL ${status.model.toUpperCase()}`
+            : 'LOCAL ROUTER ONLY',
+        )
+      })
+      .catch(() => {
+        if (active) {
+          setModelLabel('LOCAL ROUTER ONLY')
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
 
   const capabilities = useMemo(
     () => ['WEATHER', 'MARKETS', 'NEWS', 'GITHUB', 'SYSTEM', 'MEDIA'],
@@ -127,7 +154,7 @@ export function AssistantDashboard() {
         <div className="assistant-status-stack">
           <div className="assistant-status">
             <i />
-            CONTEXT ROUTER ONLINE
+            {modelLabel}
           </div>
           <button className="assistant-clear" type="button" onClick={clearSession}>
             CLEAR SESSION
@@ -234,7 +261,7 @@ export function AssistantDashboard() {
 
       <footer className="assistant-dashboard__footer">
         <span>ENGINE // CONTEXTUAL LOCAL INTENT ROUTER</span>
-        <span>PERSISTENT SESSION // LIVE MODULE DATA // NO CLOUD MODEL</span>
+        <span>PERSISTENT SESSION // LOCAL TOOLS FIRST // OPTIONAL MODEL FALLBACK</span>
       </footer>
     </main>
   )
