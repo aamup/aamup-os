@@ -104,6 +104,7 @@ function detectNavigation(
   if (value.includes('news')) return 'news'
   if (value.includes('github') || value.includes('repo')) return 'github'
   if (value.includes('audio') || value.includes('music') || value.includes('visualizer')) return 'music'
+  if (value.includes('brief') || value.includes('daily')) return 'briefing'
   if (value.includes('memory')) return 'memory'
   if (value.includes('assistant')) return 'assistant'
   if (value.includes(' it ') || value.includes(' that ')) return context.lastModule
@@ -258,7 +259,6 @@ export async function runAssistantSessionQuery(
     'repo',
     'system',
     'cpu',
-    'memory',
     'playing',
     'song',
     'track',

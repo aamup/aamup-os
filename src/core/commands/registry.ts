@@ -3,6 +3,7 @@ import {
   getDailyBriefing,
 } from '../../modules/briefing/client'
 import {
+  embedTexts,
   getEmbeddingStatus,
 } from '../../modules/memory/embeddings'
 import {
@@ -405,26 +406,59 @@ export const commandDefinitions: CommandDefinition[] = [
   {
     name: 'embedding',
     aliases: ['embed'],
-    description: 'Inspect the optional semantic-memory embedding provider.',
+    description: 'Inspect and probe the semantic-memory embedding provider.',
     execute: async () => {
       const status = await getEmbeddingStatus()
 
-      return {
-        ok: true,
-        output: status.configured
-          ? [
-              `EMBEDDING :: ${status.model}`,
-              `PROVIDER :: ${status.provider}`,
-              `ENDPOINT :: ${status.baseUrl}`,
-              `AUTH :: ${status.hasApiKey ? 'CONFIGURED' : 'NONE'}`,
-              'RETRIEVAL :: HYBRID SEMANTIC + LEXICAL',
-            ]
-          : [
-              'EMBEDDING :: NOT CONFIGURED',
-              'SET AAMUP_EMBED_MODEL',
-              'OPTIONAL :: SET AAMUP_EMBED_BASE_URL',
-              'RETRIEVAL :: LEXICAL FALLBACK',
-            ],
+      if (!status.configured) {
+        return {
+          ok: true,
+          output: [
+            'EMBEDDING :: NOT CONFIGURED',
+            'SET AAMUP_EMBED_MODEL',
+            'OPTIONAL :: SET AAMUP_EMBED_BASE_URL',
+            'STATE :: DISABLED',
+            'RETRIEVAL :: LEXICAL FALLBACK',
+          ],
+        }
+      }
+
+      try {
+        const probe = await embedTexts([
+          'AAMUP semantic memory health check',
+        ])
+        const dimensions =
+          probe.embeddings[0]?.length ?? 0
+
+        if (!dimensions) {
+          throw new Error(
+            'provider returned no embedding dimensions',
+          )
+        }
+
+        return {
+          ok: true,
+          output: [
+            `EMBEDDING :: ${status.model}`,
+            `PROVIDER :: ${status.provider}`,
+            `ENDPOINT :: ${status.baseUrl}`,
+            `AUTH :: ${status.hasApiKey ? 'CONFIGURED' : 'NONE'}`,
+            'STATE :: ONLINE',
+            `DIMENSIONS :: ${dimensions}`,
+            'RETRIEVAL :: HYBRID SEMANTIC + LEXICAL',
+          ],
+        }
+      } catch (error) {
+        return {
+          ok: false,
+          output: [
+            `EMBEDDING :: ${status.model}`,
+            `ENDPOINT :: ${status.baseUrl}`,
+            'STATE :: ERROR',
+            `ERROR :: ${error instanceof Error ? error.message : String(error)}`,
+            'RETRIEVAL :: LEXICAL FALLBACK',
+          ],
+        }
       }
     },
   },

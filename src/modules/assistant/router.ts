@@ -270,7 +270,6 @@ function rankNativeIntent(value: string): IntentCandidate | null {
 
   if (hasAnyWord(wordSet, [
     'cpu',
-    'memory',
     'disk',
     'uptime',
     'process',
@@ -278,6 +277,23 @@ function rankNativeIntent(value: string): IntentCandidate | null {
     'telemetry',
   ])) {
     candidates.push({ intent: 'system', score: 10 })
+  } else if (
+    hasAnyWord(wordSet, ['memory', 'ram']) &&
+    hasAnyWord(wordSet, [
+      'system',
+      'ram',
+      'usage',
+      'using',
+      'used',
+      'available',
+      'free',
+      'percent',
+      'percentage',
+      'computer',
+      'machine',
+    ])
+  ) {
+    candidates.push({ intent: 'system', score: 9 })
   } else if (
     hasAnyWord(wordSet, ['system']) &&
     hasAnyWord(wordSet, [
@@ -514,7 +530,7 @@ function helpResult(): AssistantResult {
       'Ask for markets, stocks, crypto, or watchlist status.',
       'Ask for local, AI, or technology headlines.',
       'Ask for GitHub, repository, branch, commit, or CI status.',
-      'Ask for CPU, memory, disk, processes, or uptime.',
+      'Ask for CPU, RAM usage, disk, processes, or uptime.',
       'Ask what is playing, or say pause / next / previous.',
     ],
   }
