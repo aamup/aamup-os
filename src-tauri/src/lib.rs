@@ -1,3 +1,4 @@
+mod assistant_embedding;
 mod assistant_model;
 mod github_remote;
 mod markets;
@@ -6,6 +7,7 @@ mod memory;
 mod news;
 mod weather;
 
+use assistant_embedding::{embed_texts, get_embedding_status};
 use assistant_model::{get_assistant_model_status, query_assistant_model};
 use github_remote::get_github_remote_state;
 use markets::get_markets_intelligence;
@@ -211,6 +213,8 @@ pub fn run() {
             media_control,
             get_assistant_model_status,
             query_assistant_model,
+            get_embedding_status,
+            embed_texts,
             remember_memory,
             list_memories,
             search_memories,

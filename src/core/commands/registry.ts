@@ -3,6 +3,9 @@ import {
   getDailyBriefing,
 } from '../../modules/briefing/client'
 import {
+  getEmbeddingStatus,
+} from '../../modules/memory/embeddings'
+import {
   recallRelevantMemories,
 } from '../../modules/memory/retrieval'
 import {
@@ -38,7 +41,7 @@ export const commandDefinitions: CommandDefinition[] = [
     execute: () => ({
       ok: true,
       output: [
-        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | brief | memory | recall | remember | forget | ask | model | version | clear',
+        'COMMANDS :: help | system | status | modules | github | weather | markets | news | audio | media | brief | memory | recall | embedding | remember | forget | ask | model | version | clear',
         'TIP :: github [local|remote|commits|issues|prs|ci]',
       ],
     }),
@@ -400,6 +403,32 @@ export const commandDefinitions: CommandDefinition[] = [
     },
   },
   {
+    name: 'embedding',
+    aliases: ['embed'],
+    description: 'Inspect the optional semantic-memory embedding provider.',
+    execute: async () => {
+      const status = await getEmbeddingStatus()
+
+      return {
+        ok: true,
+        output: status.configured
+          ? [
+              `EMBEDDING :: ${status.model}`,
+              `PROVIDER :: ${status.provider}`,
+              `ENDPOINT :: ${status.baseUrl}`,
+              `AUTH :: ${status.hasApiKey ? 'CONFIGURED' : 'NONE'}`,
+              'RETRIEVAL :: HYBRID SEMANTIC + LEXICAL',
+            ]
+          : [
+              'EMBEDDING :: NOT CONFIGURED',
+              'SET AAMUP_EMBED_MODEL',
+              'OPTIONAL :: SET AAMUP_EMBED_BASE_URL',
+              'RETRIEVAL :: LEXICAL FALLBACK',
+            ],
+      }
+    },
+  },
+  {
     name: 'recall',
     description: 'Preview memories relevant to a model query.',
     usage: 'recall <query>',
@@ -423,7 +452,7 @@ export const commandDefinitions: CommandDefinition[] = [
               `RECALL // ${entries.length} RELEVANT MEMORIES`,
               ...entries.map(
                 (entry) =>
-                  `#${entry.id} SCORE ${entry.score} // ${entry.content}`,
+                  `#${entry.id} ${entry.retrievalMode.toUpperCase()} SCORE ${entry.score.toFixed(2)}${entry.semanticSimilarity !== null ? ` // COS ${entry.semanticSimilarity.toFixed(3)}` : ''} // ${entry.content}`,
               ),
             ]
           : [
