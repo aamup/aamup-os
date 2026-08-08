@@ -166,3 +166,34 @@ clear context
 reset context
 forget context
 ```
+
+## v0.2 — Context and navigation
+
+Assistant Core v0.2 adds a persistent local session layer around the deterministic v0.1 router.
+
+It remembers the last intent, module, news category, and turn count. The dashboard persists
+recent history and context locally.
+
+Examples:
+
+```text
+What is the weather?
+What about tomorrow?
+
+Latest AI news.
+Show me more.
+
+Open markets.
+Open GitHub.
+Open audio.
+```
+
+Navigation requests now emit an AAMUP OS navigation action and switch the center module.
+
+Context can be cleared with the dashboard control or:
+
+```text
+clear context
+reset context
+forget context
+```
